@@ -87,7 +87,7 @@ def Unpack_package(value):
     # uppackRet = struct.unpack(fmt, )
     return info.split(" ")
 
-def socket_client():
+def socket_client(userinfo):
     ##开始登录##
     global loginSocket
     try:
@@ -101,7 +101,7 @@ def socket_client():
     deFirstRecv = base64.b64decode(firstRecv)
     print(firstRecv, deFirstRecv)#目的在于接受：Accept new connection from (...
 
-    userinfo = {"user":"test1","srv":"cocos1"}
+    
     SendLogin(userinfo.get("user"), userinfo.get("srv"), 123)
 
 
@@ -154,24 +154,24 @@ def socket_client():
 
     # Send_package("clientsendpackage")
 
-    while 1:
-        number = input('please input number with(BYTE:0-255): ')
+    # while 1:
+    #     number = input('please input number with(BYTE:0-255): ')
 
-        if number == 'exit':
-            break
+    #     if number == 'exit':
+    #         break
 
-        number = int(number)
+    #     number = int(number)
         
-        print(number,type(number))
+    #     print(number,type(number))
         
-        # Send_request("echo", 0)
-        Send_request(number, 0)
+    #     # Send_request("echo", 0)
+    #     Send_request(number, 0)
 
         
         
     #     # os.system("pause")
     #测试 断线重连
-    requestSocket.close()
+    # requestSocket.close()
 
     # try:
     #     requestSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

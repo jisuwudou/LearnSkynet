@@ -2,10 +2,14 @@ import pygame
 from threading import Thread
 from draw import InputBox
 from draw import ButtonImage
-import C_Websocket
+import C_Websocket as wb
 
 def NetworkData():
 	pass
+
+def Login(user):
+	userinfo = {"user":user,"srv":"cocos1"}
+	wb.socket_client(userinfo)
 
 
 class MainLogic:
@@ -13,7 +17,7 @@ class MainLogic:
 
 	def OnSureBtnDown(self):
 		print("OnSureBtnDown", self.userInput.text)
-	
+		Login(self.userInput.text)
 	
 	def LogicRun(self):
 	
@@ -28,7 +32,7 @@ class MainLogic:
 		window.fill((255, 255, 255))
 		
 		self.userInput = InputBox()
-		sureBtn = ButtonImage("btnSure.png", 15,16,1)
+		sureBtn = ButtonImage("btnSure.png", 200,200,1)
 		sureBtn.mousedownEvt = self.OnSureBtnDown
 	
 		while True:

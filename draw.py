@@ -8,8 +8,10 @@ from pygame import font
 
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
 
-class InputBox:
+class InputBox(pygame.sprite.Sprite):
+    surface = None
     def __init__(self, rect: pygame.Rect = pygame.Rect(100, 100, 140, 32)) -> None:
+        super().__init__()
         """
         rect，传入矩形实体，传达输入框的位置和大小
         """
@@ -21,6 +23,12 @@ class InputBox:
         self.text = 'test1'
         self.done = False
         self.font = pygame.font.Font(None, 32)
+
+        self.surface = pygame.Surface([rect.width, rect.height])
+
+        self.image = pygame.Surface([self.boxBody.width, self.boxBody.height])
+        # self.image.fill(self.color)
+        self.rect = self.boxBody
 
     def dealEvent(self, event: pygame.event.Event):
         if(event.type == pygame.MOUSEBUTTONDOWN):
@@ -41,18 +49,28 @@ class InputBox:
                     self.text = self.text[:-1]
                 else:
                     self.text += event.unicode
+                    print(self.text)
 
-    def draw(self, screen: pygame.surface.Surface):
-        txtSurface = self.font.render(
-            self.text, True, self.color)  # 文字转换为图片
+    def update(self):
+        txtSurface = self.font.render( self.text, True, self.color)  # 文字转换为图片
         width = max(200, txtSurface.get_width()+10)  # 当文字过长时，延长文本框
         self.boxBody.w = width
-        screen.blit(txtSurface, (self.boxBody.x+5, self.boxBody.y+5))
-        pygame.draw.rect(screen, self.color, self.boxBody, 2)
+        self.image.blit(txtSurface, (self.boxBody.x+5, self.boxBody.y+5))
+        pygame.draw.rect(self.image, self.color, self.boxBody, 2)
 
 
-class Image:
+    # def update(self, screen: pygame.surface.Surface):
+    #     txtSurface = self.font.render(
+    #         self.text, True, self.color)  # 文字转换为图片
+    #     width = max(200, txtSurface.get_width()+10)  # 当文字过长时，延长文本框
+    #     self.boxBody.w = width
+    #     screen.blit(txtSurface, (self.boxBody.x+5, self.boxBody.y+5))
+    #     pygame.draw.rect(screen, self.color, self.boxBody, 2)
+
+
+class Image(pygame.sprite.Sprite):
     def __init__(self, img_name: str, center_x, center_y, ratio=0.4):
+        super().__init__()
         """
         img_name: 图片文件名，如'background.jpg'、'ink.png',注意为字符串
         ratio: 图片缩放比例，与主屏幕相适应，默认值为0.4
@@ -63,6 +81,7 @@ class Image:
         self.image_1080x1920 = pygame.image.load(os.path.join('res/btn/', self.img_name)).convert_alpha()
         self.img_width = self.image_1080x1920.get_width()
         self.img_height = self.image_1080x1920.get_height()
+
         
         self.size_scaled = self.img_width * self.ratio, self.img_height * self.ratio
  
@@ -71,6 +90,11 @@ class Image:
         self.img_height_scaled = self.image_scaled.get_height()
         self.center_x = center_x
         self.center_y = center_y
+
+
+        self.image = self.image_1080x1920
+        self.rect = self.center_x, self.center_y, self.img_width, self.img_height
+
         print("image ", self.img_width, self.img_height, self.ratio)
  
     def draw(self, surface: pygame.Surface):

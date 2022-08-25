@@ -87,6 +87,15 @@ def Unpack_package(value):
     # uppackRet = struct.unpack(fmt, )
     return info.split(" ")
 
+
+def close():
+    global loginSocket,requestSocket
+    if loginSocket:
+        loginSocket.close()
+    if requestSocket:
+        requestSocket.close()
+
+
 def socket_client(userinfo):
     ##开始登录##
     global loginSocket
@@ -143,10 +152,13 @@ def socket_client(userinfo):
     retCode,retInfo = Unpack_package(handshakeret)
     if int(retCode) == 200:
         print("============hand shake SUCCESS !!!!=============")
+        return True
     else:
         print("============hand shake ERR !!!", retCode, retInfo)
         requestSocket.close()
-        return
+        return False
+
+
     # handshakeretLen = struct.unpack(">H", handshakeret)
     # print("handshakeretLen ", handshakeretLen)
 

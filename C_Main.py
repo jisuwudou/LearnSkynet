@@ -7,13 +7,18 @@ import C_Websocket as wb
 from pygame.sprite import Sprite,Group
 
 from enum import Enum #枚举
+import  Manager.Event_Mgr as EvtMgr
 
-class GAME_STATUS(Enum):
-	LOGIN= 1
+class EGAME_STATUS(Enum):
+	INIT = 0
+	REQ_LOGIN= 1
+	PLAYING = 2
 
 class EWIN(Enum):
+	BACKGOURND = 0
 	LOGIN = 1#登录界面
 	FIND_ROOM = 2
+
 
 class EROOM_STATUS(Enum):
 	WAITING = 1#等待开局
@@ -47,6 +52,9 @@ class WinBase(Group):
 
 def NetworkData():
 	pass
+
+
+
 
 @Singleton
 class GAME_CONFIG():
@@ -99,8 +107,6 @@ class Room():
 			return False
 
 
-
-
 @Singleton
 class Room_Mgr():
 	_RoomList = []
@@ -108,18 +114,24 @@ class Room_Mgr():
 		print("INIT Fuben_Mgr")
 
 
+@Singleton
+class Game_Mgr():
+	_gameStatus = EGAME_STATUS.INIT
 
 @Singleton
 class Win_Mgr():
 	# _instance = None
 	_winCls = {}
 	_winList = {}
-
+	_staticWinList={}
 	_textNumber = 0
 
 	def __init__(self):
 		self._winCls[EWIN.LOGIN] = Win_Login
 		self._winCls[EWIN.FIND_ROOM] = Win_FindRoom
+		# self._winCls[EWIN.BACKGOURND] = BackGround
+
+
 
 	def ShowWin(self,ewin):
 		if self._winList.get(ewin) is None:
@@ -130,7 +142,6 @@ class Win_Mgr():
 		for e in self._winList:
 			if e != ewin:
 				self._winList[e].Kill()
-				# self._winList.pop(e)
 				needDel.append(e)
 				# break#目前默认只有一个弹窗
 
@@ -138,14 +149,27 @@ class Win_Mgr():
 			self._winList.pop(e)
 			print("DELETEWIN", e)
 
+	# def ShowWinStatic(self,ewin):
+	# 	if self._staticWinList.get(ewin) is None:
+	# 		self._staticWinList[ewin] = self._winCls.get(ewin)()
+
 	def Update(self,window):
+
+		# for win in self._staticWinList.values():
+		# 	win.update()
+		# 	win.draw(window)
+
 		for ewin in self._winList:
 			self._winList[ewin].update()
 			self._winList[ewin].draw(window)
 
+
+
 	def dealEvent(self,event):
-		for ewin in self._winList:
-			self._winList[ewin].dealEvent(event)
+		for win in self._winList.values():
+			# print(len(self._winList))
+			win.dealEvent(event)
+
 
 class Win_FindRoom(WinBase):
 	# group1 = pygame.sprite.Group()
@@ -167,13 +191,13 @@ class Win_FindRoom(WinBase):
 
 ###登录界面####
 class Win_Login(WinBase):
-	# spriteGrp = pygame.sprite.Group()
-	# sureBtn = None
+
 	def __init__(self):
 		super().__init__()
 		self.userInput = InputBox()
 		self.sureBtn = ButtonImage("btnSure.png", 200,200,1)
-		self.sureBtn.mousedownEvt = self.OnSureBtnDown
+		# self.sureBtn.mousedownEvt = self.OnSureBtnDown
+		EvtMgr.GetMgr().AddEvent(self.sureBtn, self.OnSureBtnDown)
 
 		s = Sprite()
 		# 创建一个图块并填色，或加载image
@@ -189,18 +213,36 @@ class Win_Login(WinBase):
 		super().draw(window)
 		self.userInput.drawText(window)
 
-	def OnSureBtnDown(self):
+	def OnSureBtnDown(self, btn):
 		print("OnSureBtnDown", self.userInput.text)
 		self.Login(self.userInput.text)
 
 	def Login(self,user):
 		self.userinfo = {"user":user,"srv":"cocos1"}
+		Game_Mgr()._gameStatus = EGAME_STATUS.REQ_LOGIN
 		self.loginDone = wb.socket_client(self.userinfo)
 		# print("=======login ====",self.loginDone)
+		if self.loginDone:
+			Game_Mgr()._gameStatus = EGAME_STATUS.PLAYING
+			Win_Mgr().ShowWin(EWIN.FIND_ROOM)
+		else:
+			Game_Mgr()._gameStatus = EGAME_STATUS.INIT
+		
+class BackGround(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load('./res/background.png')
+        self.rect = self.image.get_rect()
+        self.ready_to_move = 0
 
-		Win_Mgr().ShowWin(EWIN.FIND_ROOM)
+    def update(self, *args):
+        self.rect.x -= 0
+        if self.rect.right <= 0:
+            self.rect.x = self.rect.width
 
 
+    def draw(self, window):
+    	super().draw(window)
 
 class MainLogic:
 
@@ -223,24 +265,36 @@ class MainLogic:
 		pygame.display.set_caption('我的游戏')
 		# 设置背景颜色
 		window.fill((255, 255, 255))
+
+		bgGroup = Group()
+		bgGroup.add(BackGround())
 		
 		win_mgr = Win_Mgr()
+		# win_mgr.ShowWinStatic(EWIN.BACKGOURND)
 		win_mgr.ShowWin(EWIN.LOGIN)
 
 		while True:
-			
+			window.fill((255, 255, 255))
+			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
+				continue
+
+			# bgGroup.update()
+			# bgGroup.draw(window)
+
+
+			win_mgr.Update(window)
+
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					pygame.quit()
 					wb.close()
 					raise SystemExit
-				# win_login.dealEvent(event)
 				
 				win_mgr.dealEvent(event)
 			
-			win_mgr.Update(window)
-			# window.clear()
-			# pygame.display.flip()
+			EvtMgr.GetMgr().Run()
+
+			
 			pygame.display.update()
 
 

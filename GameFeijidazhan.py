@@ -125,7 +125,7 @@ class Explode(pygame.sprite.Sprite):
     def update(self, *args):
         if self.image_index < 2:
             self.readt_to_change += 1
-            if self.readt_to_change % 4 == 0:
+            if self.readt_to_change % 14 == 0:
                 self.image_index += 1
                 self.image = self.images[self.image_index]
         else:

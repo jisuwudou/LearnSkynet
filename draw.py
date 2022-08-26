@@ -8,6 +8,8 @@ from pygame import font
 
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
 
+import  Manager.Event_Mgr as EvtMgr
+
 class InputBox(pygame.sprite.Sprite):
     surface = None
     txtSurface = None
@@ -132,8 +134,7 @@ class ButtonImage(Image):
         #     command()
         if(event.type == pygame.MOUSEBUTTONDOWN):
             if(self.rect.collidepoint(event.pos)):  # 若按下鼠标且位置在文本框
-                if self.mousedownEvt:
-                    self.mousedownEvt()
+                EvtMgr.GetMgr().Dispatch(self)
         if(event.type == pygame.KEYDOWN):  # 键盘输入响应
             if(event.key == pygame.K_RETURN):
                 print("button return")

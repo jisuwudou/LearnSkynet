@@ -10,6 +10,7 @@ from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
 
 class InputBox(pygame.sprite.Sprite):
     surface = None
+    txtSurface = None
     def __init__(self, rect: pygame.Rect = pygame.Rect(100, 100, 140, 32)) -> None:
         super().__init__()
         """
@@ -52,12 +53,15 @@ class InputBox(pygame.sprite.Sprite):
                     print(self.text)
 
     def update(self):
-        txtSurface = self.font.render( self.text, True, self.color)  # 文字转换为图片
-        width = max(200, txtSurface.get_width()+10)  # 当文字过长时，延长文本框
-        self.boxBody.w = width
-        self.image.blit(txtSurface, (self.boxBody.x+5, self.boxBody.y+5))
-        pygame.draw.rect(self.image, self.color, self.boxBody, 2)
+        pass
+        # self.image.blit(txtSurface, (self.boxBody.x+5, self.boxBody.y+5))
+        # pygame.draw.rect(self.image, self.color, self.boxBody, 2)
 
+    def drawText(self,surface):
+        self.txtSurface = self.font.render( self.text, True, self.color)  # 文字转换为图片
+        width = max(200, self.txtSurface.get_width()+10)  # 当文字过长时，延长文本框
+        self.boxBody.w = width
+        surface.blit(self.txtSurface, (self.boxBody.x+5, self.boxBody.y+5))
 
     # def update(self, screen: pygame.surface.Surface):
     #     txtSurface = self.font.render(
@@ -122,7 +126,7 @@ class ButtonImage(Image):
         super().draw(surface)
         
  
-    def handle_event(self, event):
+    def dealEvent(self, event):
         # self.hovered = self.rect.collidepoint(pygame.mouse.get_pos())
         # if self.hovered:
         #     command()

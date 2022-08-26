@@ -120,9 +120,7 @@ def socket_client(userinfo):
     loginRet = loginRet.decode('utf-8')
     print(loginRet)
     loginCode = (loginRet.split(" ")[0])
-    subId = loginRet.split(" ")[1]
-    subId = base64.b64decode(subId).decode('utf-8')
-    print('loginRet=',loginRet, loginCode, subId,type(subId))
+    
     ##关闭登录连接##
     loginSocket.close()
     if loginCode == '200':#账号登录成功
@@ -131,6 +129,11 @@ def socket_client(userinfo):
         print("================LOGIN ERROR !!!!==============,loginCode")
         
         return
+
+    subId = loginRet.split(" ")[1]
+    subId = base64.b64decode(subId).decode('utf-8')
+    print('loginRet=',loginRet, loginCode, subId,type(subId))
+
     #已完成登录请求#
 
     ########################### 建立连接  ###################################

@@ -2,8 +2,8 @@ import pygame
 from threading import Thread
 from draw import InputBox
 from draw import ButtonImage
-import C_Websocket as wb
-
+import C_Websocket as ws
+import time
 from pygame.sprite import Sprite,Group
 
 from enum import Enum #枚举
@@ -51,9 +51,13 @@ class WinBase(Group):
 
 
 def NetworkData():
-	pass
-
-
+	# pass
+	while True:
+		time.sleep(2)
+		data = ws.GetSrvData()
+		print("Thread Test", data)
+		# ret = ws.GetNetWorkData()
+		# print("On Get NetworkData ", ret)
 
 
 @Singleton
@@ -86,8 +90,6 @@ class MainPlayer(Player):
 
 		self.image.fill("blue")
 		
-
- 
 
 class Room():
 	_number = None
@@ -181,13 +183,21 @@ class Win_FindRoom(WinBase):
 		self.findRandRoomBtn = ButtonImage("find.png", 200,400,1)
 		self.add(self.findRandRoomBtn)
 
+		EvtMgr.GetMgr().AddEvent(self.findRandRoomBtn, self.enterRoom)
+
 	#override
 	def draw(self,window):
 		super().draw(window)
 		# self.findRandRoomBtn.drawText(window)
 
-
-	
+	def enterRoom(self,btn):
+		print("BTN enterroom ", self,btn)
+		# data = struct.pack(">H")
+		# ws.Send_request(123, 0)
+		pack = ws.AllocPackage()
+		pack.WriteWord(10)
+		pack.WriteWord(20)
+		ws.Flush()
 
 ###登录界面####
 class Win_Login(WinBase):
@@ -220,7 +230,7 @@ class Win_Login(WinBase):
 	def Login(self,user):
 		self.userinfo = {"user":user,"srv":"cocos1"}
 		Game_Mgr()._gameStatus = EGAME_STATUS.REQ_LOGIN
-		self.loginDone = wb.socket_client(self.userinfo)
+		self.loginDone = ws.socket_client(self.userinfo)
 		# print("=======login ====",self.loginDone)
 		if self.loginDone:
 			Game_Mgr()._gameStatus = EGAME_STATUS.PLAYING
@@ -245,14 +255,6 @@ class BackGround(pygame.sprite.Sprite):
     	super().draw(window)
 
 class MainLogic:
-
-	loginDone = False
-	userinfo = None
-	gamestatus = {
-		"Running",
-		"Login"
-	}
-
 	
 	def LogicRun(self):
 	
@@ -278,16 +280,12 @@ class MainLogic:
 			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
 				continue
 
-			# bgGroup.update()
-			# bgGroup.draw(window)
-
-
 			win_mgr.Update(window)
 
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					pygame.quit()
-					wb.close()
+					ws.close()
 					raise SystemExit
 				
 				win_mgr.dealEvent(event)
@@ -298,7 +296,9 @@ class MainLogic:
 			pygame.display.update()
 
 
-
+def MainThreadRun():
+	mainLogic = MainLogic()
+	mainLogic.LogicRun()
 
 if __name__ == "__main__":
 
@@ -306,5 +306,8 @@ if __name__ == "__main__":
 	thread.daemon = True
 	thread.start()  #启动线程
 
+	# thread1 = Thread(target=MainThreadRun)       #发送数据后，就进行接收数据的循环线程中
+	# thread1.daemon = True
+	# thread1.start()  #启动线程
 	mainLogic = MainLogic()
 	mainLogic.LogicRun()

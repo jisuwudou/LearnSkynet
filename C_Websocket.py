@@ -5,8 +5,57 @@ import os
 import base64 
 import struct
 
+
+
+
+
 loginSocket=None
 requestSocket=None
+canRecv = False
+curPackage = None
+
+
+class Package():
+    pLen = 0
+    buffer = bytes()
+
+    def WriteBytes(self,value):
+        self.pLen += 1
+
+        if value > 255:
+            print("Package WriteBytes too big ", value)
+            return False
+
+        # value = str(value)
+        self.buffer += struct.pack(">B", value)
+
+    def WriteWord(self,value):
+        self.pLen += 2
+
+        if value > 65535:
+            print("Package WriteWord too big ", value)
+            return False
+
+        # value = str(value)
+        self.buffer += struct.pack(">H", value)
+
+    def WriteInt(self,value):
+        self.pLen += 4
+
+        # if value > 65535:
+        #     print("Package WriteWord too big ", value)
+        #     return False
+
+        # value = str(value)
+        self.buffer += struct.pack(">i", value)
+
+    def GetBuffer(self, session):
+        self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("i",session)
+        # print(self.buffer, struct.unpack(">HHHI4", self.buffer))
+        return self.buffer
+
+    def Clear(self):
+        self.buffer = None
 
 
 #登录请求
@@ -87,6 +136,27 @@ def Unpack_package(value):
     # uppackRet = struct.unpack(fmt, )
     return info.split(" ")
 
+def AllocPackage():
+    global curPackage
+    if curPackage :
+        print("========= ERRRRRRRRRRRRRRRRRRRRR ,only one package ===============")
+        return None
+
+    curPackage = Package()
+    return curPackage
+
+def Flush():
+    global curPackage
+    if None == curPackage :
+        print("========= ERRRRRRRRRRRRRRRRRRRRR ,flush no package ===============")
+        return None
+
+    global requestSocket
+    if requestSocket:
+        buffer = curPackage.GetBuffer(0)
+        requestSocket.send(buffer)
+        curPackage.Clear()
+        curPackage = None
 
 def close():
     global loginSocket,requestSocket
@@ -94,6 +164,12 @@ def close():
         loginSocket.close()
     if requestSocket:
         requestSocket.close()
+
+
+def GetSrvData():
+    global requestSocket
+    if requestSocket :
+        return requestSocket.recv(1024)
 
 
 def socket_client(userinfo):
@@ -161,6 +237,8 @@ def socket_client(userinfo):
         requestSocket.close()
         return False
 
+
+    canRecv = True
 
     # handshakeretLen = struct.unpack(">H", handshakeret)
     # print("handshakeretLen ", handshakeretLen)

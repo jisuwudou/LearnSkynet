@@ -19,6 +19,10 @@ class Package():
     pLen = 0
     buffer = bytes()
 
+    def __init__(self, sys, cmd):
+        self.pLen += 2
+        self.buffer += struct.pack(">BB", sys, cmd)
+
     def WriteBytes(self,value):
         self.pLen += 1
 
@@ -50,12 +54,24 @@ class Package():
         self.buffer += struct.pack(">i", value)
 
     def GetBuffer(self, session):
-        self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("i",session)
-        # print(self.buffer, struct.unpack(">HHHI4", self.buffer))
+        # self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("i",session)
+        self.buffer = struct.pack(">BBHHHI",1,18,10,20,0) 
+        print(self.buffer, struct.unpack(">BBHHHI", self.buffer))
+        # b'\x00\x04\x00\n\x00\x14\x00\x00\x00\x00' (4, 10, 20, 0)
         return self.buffer
 
     def Clear(self):
         self.buffer = None
+
+
+def AllocPackage(sys, cmd):
+    global curPackage
+    if curPackage :
+        print("========= ERRRRRRRRRRRRRRRRRRRRR ,only one package ===============")
+        return None
+
+    curPackage = Package(sys, cmd)
+    return curPackage
 
 
 #登录请求
@@ -136,14 +152,7 @@ def Unpack_package(value):
     # uppackRet = struct.unpack(fmt, )
     return info.split(" ")
 
-def AllocPackage():
-    global curPackage
-    if curPackage :
-        print("========= ERRRRRRRRRRRRRRRRRRRRR ,only one package ===============")
-        return None
 
-    curPackage = Package()
-    return curPackage
 
 def Flush():
     global curPackage

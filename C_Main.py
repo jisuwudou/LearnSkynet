@@ -8,6 +8,7 @@ from pygame.sprite import Sprite,Group
 
 from enum import Enum #枚举
 import  Manager.Event_Mgr as EvtMgr
+import define.LogicCmd
 
 class EGAME_STATUS(Enum):
 	INIT = 0
@@ -194,7 +195,7 @@ class Win_FindRoom(WinBase):
 		print("BTN enterroom ", self,btn)
 		# data = struct.pack(">H")
 		# ws.Send_request(123, 0)
-		pack = ws.AllocPackage()
+		pack = ws.AllocPackage(ESYS.MovementSys, )
 		pack.WriteWord(10)
 		pack.WriteWord(20)
 		ws.Flush()

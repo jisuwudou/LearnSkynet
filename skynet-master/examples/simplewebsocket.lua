@@ -7,6 +7,8 @@ local handle = {}
 local MODE = ...
 
 if MODE == "agent" then
+    skynet.error("simple web socket] mode agent", debug.traceback())
+
     function handle.connect(id)
         print("ws connect from: " .. tostring(id))
     end
@@ -42,7 +44,7 @@ if MODE == "agent" then
         print("ws error from: " .. tostring(id))
     end
 
-    skynet.start(function ()
+    skynet.start(function (...)
         skynet.dispatch("lua", function (_,_, id, protocol, addr)
             local ok, err = websocket.accept(id, handle, protocol, addr)
             if not ok then

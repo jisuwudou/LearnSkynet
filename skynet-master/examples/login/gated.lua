@@ -11,7 +11,7 @@ local internal_id = 0
 
 -- login server disallow multi login, so login_handler never be reentry
 -- call by login server
-function server.login_handler(uid, secret)
+function server.login_handler(uid, secret, accountId)
 	if users[uid] then
 		error(string.format("%s is already login", uid))
 	end
@@ -20,6 +20,8 @@ function server.login_handler(uid, secret)
 	local id = internal_id	-- don't use internal_id directly
 	local username = msgserver.username(uid, id, servername)
 
+
+	skynet.error("==gated== login_handler()", uid, id, username, accountId)
 	-- you can use a pool to alloc new agent
 	local agent = skynet.newservice "msgagent"
 	local u = {
@@ -28,15 +30,14 @@ function server.login_handler(uid, secret)
 		uid = uid,
 		subid = id,
 	}
-
-	-- trash subid (no used)
-	skynet.call(agent, "lua", "login", uid, id, secret)
-
+	skynet.error("==gated== login_handler() 222")
+	skynet.call(agent, "lua", "login", uid, id, secret, accountId)
+	skynet.error("==gated== login_handler() 333")
 	users[uid] = u
 	username_map[username] = u
 
 	msgserver.login(username, secret)
-
+	skynet.error("==gated== login_handler() 333")
 	-- you should return unique subid
 	return id
 end
@@ -76,6 +77,9 @@ end
 -- call by self (when recv a request from client)
 function server.request_handler(username, msg)
 	local u = username_map[username]
+
+	skynet.error("==gated ==== request_handler ", username, msg)
+	
 	return skynet.tostring(skynet.rawcall(u.agent, "client", msg))
 end
 

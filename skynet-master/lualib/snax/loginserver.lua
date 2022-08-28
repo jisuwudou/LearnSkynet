@@ -52,33 +52,44 @@ local function launch_slave(auth_handler)
 		-- If the attacker send large package, close the socket
 		socket.limit(fd, 8192)
 
-		local challenge = crypt.randomkey()
-		write("auth", fd, crypt.base64encode(challenge).."\n")
+		-- local challenge = crypt.randomkey()
+		-- skynet.error("==launch_slave==1111 crypt.randomkey()", challenge.."\0")
+		-- write("auth", fd, crypt.base64encode(challenge).."\n")
+		-- skynet.error("==launch_slave== 2222", fd)
+		-- local handshake = assert_socket("auth", socket.readline(fd), fd)
+		
+		-- local clientkey = crypt.base64decode(handshake)
+		-- skynet.error("handshake ", handshake)
+		-- if #clientkey ~= 8 then
+		-- 	error "Invalid client key"
+		-- end
+		-- local serverkey = crypt.randomkey()
+		-- kynet.error("==launch_slave==3333serverkey crypt.randomkey()", serverkey)
+		-- write("auth", fd, crypt.base64encode(crypt.dhexchange(serverkey)).."\n")
+		-- kynet.error("==launch_slave==44444crypt.dhsecret(clientkey, serverkey)", clientkey, serverkey)
+		-- local secret = crypt.dhsecret(clientkey, serverkey)
 
-		local handshake = assert_socket("auth", socket.readline(fd), fd)
-		local clientkey = crypt.base64decode(handshake)
-		if #clientkey ~= 8 then
-			error "Invalid client key"
-		end
-		local serverkey = crypt.randomkey()
-		write("auth", fd, crypt.base64encode(crypt.dhexchange(serverkey)).."\n")
+		-- local response = assert_socket("auth", socket.readline(fd), fd)
+		-- local hmac = crypt.hmac64(challenge, secret)
 
-		local secret = crypt.dhsecret(clientkey, serverkey)
+		-- if hmac ~= crypt.base64decode(response) then
+		-- 	error "challenge failed"
+		-- end
 
-		local response = assert_socket("auth", socket.readline(fd), fd)
-		local hmac = crypt.hmac64(challenge, secret)
+		-- local etoken = assert_socket("auth", socket.readline(fd),fd)
 
-		if hmac ~= crypt.base64decode(response) then
-			error "challenge failed"
-		end
+		-- local token = crypt.desdecode(secret, crypt.base64decode(etoken))
 
-		local etoken = assert_socket("auth", socket.readline(fd),fd)
 
-		local token = crypt.desdecode(secret, crypt.base64decode(etoken))
 
-		local ok, server, uid =  pcall(auth_handler,token)
 
-		return ok, server, uid, secret
+		skynet.error("==loginserver== write to client ")
+		write("auth", fd, crypt.base64encode("Login").."\n")
+		local token = assert_socket("auth", socket.readline(fd), fd)
+		skynet.error("testToken====",token)
+		local ok, server, uid,accountId =  pcall(auth_handler,token)
+
+		return ok, server, uid, secret,accountId
 	end
 
 	local function ret_pack(ok, err, ...)
@@ -111,11 +122,15 @@ local function launch_slave(auth_handler)
 	end)
 end
 
+
+---------------下面是master,创建多个logind服务，上面的是slave负责干活，做应答？----------------
+
 local user_login = {}
 
 local function accept(conf, s, fd, addr)
 	-- call slave auth
-	local ok, server, uid, secret = skynet.call(s, "lua",  fd, addr)
+	-- skynet.error("==loginserver== accept() service ",s,skynet.address(s))
+	local ok, server, uid, secret,accountId = skynet.call(s, "lua",  fd, addr)--s分配的其中一个logind服务，call 上面的auth_fd 最后调用logind的login_handler
 	-- slave will accept(start) fd, so we can write to fd later
 
 	if not ok then
@@ -134,7 +149,7 @@ local function accept(conf, s, fd, addr)
 		user_login[uid] = true
 	end
 
-	local ok, err = pcall(conf.login_handler, server, uid, secret)
+	local ok, err = pcall(conf.login_handler, server, uid, secret, accountId)
 	-- unlock login
 	user_login[uid] = nil
 
@@ -154,18 +169,22 @@ local function launch_master(conf)
 	local port = assert(tonumber(conf.port))
 	local slave = {}
 	local balance = 1
-
+	
 	skynet.dispatch("lua", function(_,source,command, ...)
 		skynet.ret(skynet.pack(conf.command_handler(command, ...)))
 	end)
 
 	for i=1,instance do
-		table.insert(slave, skynet.newservice(SERVICE_NAME))
+		table.insert(slave, skynet.newservice(SERVICE_NAME))--logind(loginserver)
 	end
 
 	skynet.error(string.format("login server listen at : %s %d", host, port))
 	local id = socket.listen(host, port)
+
+	skynet.error("===loginserver ", host, port, "SERVICE_NAME", SERVICE_NAME)
 	socket.start(id , function(fd, addr)
+
+		skynet.error("===loginserver socket. start ", fd,addr,conf,balance, slave[balance])
 		local s = slave[balance]
 		balance = balance + 1
 		if balance > #slave then

@@ -97,6 +97,9 @@ function server.username(uid, subid, servername)
 end
 
 function server.logout(username)
+
+	skynet.error("===msgserer=== logout() ",username)
+
 	local u = user_online[username]
 	user_online[username] = nil
 	if u.fd then
@@ -109,6 +112,9 @@ end
 
 function server.login(username, secret)
 	assert(user_online[username] == nil)
+
+
+	skynet.error("== msgserer == login() user_online{}", username, secret)
 	user_online[username] = {
 		secret = secret,
 		version = 0,
@@ -148,6 +154,7 @@ function server.start(conf)
 
 	function handler.connect(fd, addr)
 		handshake[fd] = addr
+		skynet.error("[msgserer] ipaddr:",addr,"fd:",fd,"connect")
 		gateserver.openclient(fd)
 	end
 
@@ -172,6 +179,8 @@ function server.start(conf)
 	-- atomic , no yield
 	local function do_auth(fd, message, addr)
 		local username, index, hmac = string.match(message, "([^:]*):([^:]*):([^:]*)")
+
+		skynet.error("==msgserer== do_auth()", username, index, hmac, message)
 		local u = user_online[username]
 		if u == nil then
 			return "404 User Not Found"
@@ -183,11 +192,12 @@ function server.start(conf)
 			return "403 Index Expired"
 		end
 
-		local text = string.format("%s:%s", username, index)
-		local v = crypt.hmac_hash(u.secret, text)	-- equivalent to crypt.hmac64(crypt.hashkey(text), u.secret)
-		if v ~= hmac then
-			return "401 Unauthorized"
-		end
+		-- local text = string.format("%s:%s", username, index)
+		-- local v = crypt.hmac_hash(u.secret, text)	-- equivalent to crypt.hmac64(crypt.hashkey(text), u.secret)
+		-- if v ~= hmac then
+		-- 	return "401 Unauthorized"
+		-- end
+		skynet.error("do_auth临时跳过 401 Unauthorized的验证")
 
 		u.version = idx
 		u.fd = fd
@@ -243,8 +253,13 @@ function server.start(conf)
 	local function do_request(fd, message)
 		local u = assert(connection[fd], "invalid fd")
 		local session = string.unpack(">I4", message, -4)
+
 		message = message:sub(1,-5)
+		skynet.error("===do_request () session=", session)
+		skynet.error("===do_request () message=",message)
 		local p = u.response[session]
+
+		skynet.error("do_request ", fd, message, session, p)
 		if p then
 			-- session can be reuse in the same connection
 			if p[3] == u.version then
@@ -299,6 +314,8 @@ function server.start(conf)
 	local function request(fd, msg, sz)
 		local message = netpack.tostring(msg, sz)
 		local ok, err = pcall(do_request, fd, message)
+
+		skynet.error("===  Msgserver ===request()", message, ok, err)
 		-- not atomic, may yield
 		if not ok then
 			skynet.error(string.format("Invalid package %s : %s", err, message))
@@ -310,6 +327,8 @@ function server.start(conf)
 
 	function handler.message(fd, msg, sz)
 		local addr = handshake[fd]
+
+		skynet.error("===  Msgserver === message()", fd, addr)
 		if addr then
 			auth(fd,addr,msg,sz)
 			handshake[fd] = nil

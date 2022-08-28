@@ -61,6 +61,7 @@ skynet.start(function()
 		end
 		-- limit request body size to 8192 (you can pass nil to unlimit)
 		local code, url, method, header, body = httpd.read_request(interface.read, 8192)
+		skynet.error("On read request====",id, interface.write, code,interface.read)
 		if code then
 			if code ~= 200 then
 				response(id, interface.write, code)
@@ -107,7 +108,8 @@ skynet.start(function()
 		agent[i] = skynet.newservice(SERVICE_NAME, "agent", protocol)
 	end
 	local balance = 1
-	local id = socket.listen("0.0.0.0", 8001)
+	-- local id = socket.listen("0.0.0.0", 8001)
+	local id = socket.listen("0.0.0.0", 9948)
 	skynet.error(string.format("Listen web port 8001 protocol:%s", protocol))
 	socket.start(id , function(id, addr)
 		skynet.error(string.format("%s connected, pass it to agent :%08x", addr, agent[balance]))

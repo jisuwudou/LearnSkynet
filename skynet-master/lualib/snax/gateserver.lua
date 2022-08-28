@@ -34,6 +34,8 @@ function gateserver.start(handler)
 	assert(handler.message)
 	assert(handler.connect)
 
+	-- skynet.error("gateserver start === ", handler, handler.open, debug.traceback())
+
 	function CMD.open( source, conf )
 		assert(not socket)
 		local address = conf.address or "0.0.0.0"
@@ -42,6 +44,7 @@ function gateserver.start(handler)
 		nodelay = conf.nodelay
 		skynet.error(string.format("Listen on %s:%d", address, port))
 		socket = socketdriver.listen(address, port)
+		skynet.error("==gateserver==Open() listh ", socketdriver.listen, socket)
 		socketdriver.start(socket)
 		if handler.open then
 			return handler.open(source, conf)
@@ -56,6 +59,8 @@ function gateserver.start(handler)
 	local MSG = {}
 
 	local function dispatch_msg(fd, msg, sz)
+
+		skynet.error("==[gateserver ]==dispatch_msg",fd,msg,sz, skynet.tostring(msg, sz))
 		if connection[fd] then
 			handler.message(fd, msg, sz)
 		else
@@ -129,9 +134,12 @@ function gateserver.start(handler)
 		name = "socket",
 		id = skynet.PTYPE_SOCKET,	-- PTYPE_SOCKET = 6
 		unpack = function ( msg, sz )
+
+			skynet.error("gateserver TYPE:socekt, msg:",msg, sz, netpack.filter( queue, msg, sz))
 			return netpack.filter( queue, msg, sz)
 		end,
-		dispatch = function (_, _, q, type, ...)
+		dispatch = function (a, b, q, type, ...)
+			skynet.error("gateserver MSG type:socket, q, type：",type,"a=",a, "b=",b, "q=",q,"...=",...)
 			queue = q
 			if type then
 				MSG[type](...)
@@ -142,6 +150,7 @@ function gateserver.start(handler)
 	local function init()
 		skynet.dispatch("lua", function (_, address, cmd, ...)
 			local f = CMD[cmd]
+			-- skynet.error("gateserver dispatch=== ", cmd, f)
 			if f then
 				skynet.ret(skynet.pack(f(address, ...)))
 			else

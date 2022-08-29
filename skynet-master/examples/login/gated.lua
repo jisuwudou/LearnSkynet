@@ -78,7 +78,7 @@ end
 function server.request_handler(username, msg)
 	local u = username_map[username]
 
-	skynet.error("==gated ==== request_handler ", username, msg)
+	-- skynet.error("==gated ==== request_handler ", username, msg)
 	
 	return skynet.tostring(skynet.rawcall(u.agent, "client", msg))
 end

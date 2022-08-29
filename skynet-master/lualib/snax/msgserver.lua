@@ -255,11 +255,11 @@ function server.start(conf)
 		local session = string.unpack(">I4", message, -4)
 
 		message = message:sub(1,-5)
-		skynet.error("===do_request () session=", session)
-		skynet.error("===do_request () message=",message)
+		-- skynet.error("===do_request () session=", session)
+		-- skynet.error("===do_request () message=",message)
 		local p = u.response[session]
 
-		skynet.error("do_request ", fd, message, session, p)
+		-- skynet.error("do_request ", fd, message, session, p)
 		if p then
 			-- session can be reuse in the same connection
 			if p[3] == u.version then
@@ -315,7 +315,7 @@ function server.start(conf)
 		local message = netpack.tostring(msg, sz)
 		local ok, err = pcall(do_request, fd, message)
 
-		skynet.error("===  Msgserver ===request()", message, ok, err)
+		-- skynet.error("===  Msgserver ===request()", message, ok, err)
 		-- not atomic, may yield
 		if not ok then
 			skynet.error(string.format("Invalid package %s : %s", err, message))
@@ -328,7 +328,7 @@ function server.start(conf)
 	function handler.message(fd, msg, sz)
 		local addr = handshake[fd]
 
-		skynet.error("===  Msgserver === message()", fd, addr)
+		-- skynet.error("===  Msgserver === message()", fd, addr)
 		if addr then
 			auth(fd,addr,msg,sz)
 			handshake[fd] = nil

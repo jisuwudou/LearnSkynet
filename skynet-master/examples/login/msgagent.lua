@@ -8,8 +8,14 @@ skynet.register_protocol {
 
 local gate
 local userid, subid
+local user_actor = {}
 
 local CMD = {}
+
+local function GetEntityMgr()
+	local entityMgr = snax.queryservice("EntityMgr")
+	return entityMgr
+end 
 
 function CMD.login(source, uid, sid, secret, ancountId)
 	-- you may use secret to make a encrypted data stream
@@ -21,7 +27,18 @@ function CMD.login(source, uid, sid, secret, ancountId)
 
 	mysqld = snax.queryservice("MyGameMysql")
 	skynet.error("snax.queryservice ", mysqld)
-	local ret = mysqld.req.GetActor(uid, ancountId)
+	local ret,playerInfo = mysqld.req.GetActor(uid, ancountId)
+
+	if ret then
+
+		local entityMgr = GetEntityMgr()
+		createRet = entityMgr.req.createEntity(1,playerInfo.id, playerInfo.level)
+		
+
+		user_actor[userid] = playerInfo.id
+		-- playerInfo.id
+	end
+
 
 	skynet.error("==msgagent== login()", ret)
 end
@@ -31,6 +48,10 @@ local function logout()
 	if gate then
 		skynet.call(gate, "lua", "logout", userid, subid)
 	end
+
+	local entityMgr = GetEntityMgr()
+	entityMgr.post.removeEntity(user_actor[userid])
+
 	skynet.exit()
 end
 
@@ -63,6 +84,10 @@ skynet.start(function()
 
 		-- skynet.error("[msgagent]== recv Type:client", msg)
 		local systemId,cmd = string.unpack(">BB", msg)
+
+		mgr = snax.queryservice("EntityMgr")
+		mgr.post.insertMsg(userid, systemId, cmd, message:sub(3))
+
 		print("=================================CLIENT systemId,cmd", systemId,cmd)
 		skynet.sleep(10)	-- sleep a while
 		skynet.ret(msg)

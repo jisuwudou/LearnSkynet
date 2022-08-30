@@ -195,7 +195,7 @@ class Win_FindRoom(WinBase):
 		print("BTN enterroom ", self,btn)
 		# data = struct.pack(">H")
 		# ws.Send_request(123, 0)
-		pack = ws.AllocPackage(ESYS.MovementSys, )
+		pack = ws.AllocPackage(1,1)#ESYS.MovementSys, )
 		pack.WriteWord(10)
 		pack.WriteWord(20)
 		ws.Flush()

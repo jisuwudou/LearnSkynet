@@ -1,0 +1,127 @@
+snlua ?
+但框架已经提供了一个叫做 snlua 的用 C 开发的服务模块，它可以用来解析一段 Lua 脚本来实现业务逻辑。也就是说，你可以在 skynet 启动任意份 snlua 服务，只是它们承载的 Lua 脚本不同。这样，我们只使用 Lua 来进行开发就足够了。
+????
+
+[:01000009] LAUNCH snlua Pmain
+[:01000009] [Pmain] start
+[:0100000a] LAUNCH snlua debug_console 8000
+[:0100000a] Start debug console at 127.0.0.1:8000
+init lua script         stack traceback:
+        ./examples/my_ping.lua:49: in local 'main'
+        ./lualib/loader.lua:50: in main chunk
+[:0100000b] LAUNCH snlua my_ping
+init lua script         stack traceback:
+        ./examples/my_ping.lua:49: in local 'main'
+        ./lualib/loader.lua:50: in main chunk
+[:0100000c] LAUNCH snlua my_ping
+init lua script         stack traceback:
+        ./examples/my_ping.lua:49: in local 'main'
+        ./lualib/loader.lua:50: in main chunk
+[:0100000d] LAUNCH snlua my_ping
+[:01000009] KILL self
+[:01000002] KILL self
+[:0100000d] [16777229] recv ping count=1
+[:0100000c] [16777228] recv ping count=1
+
+
+大量共享数据，每个模块只需要取一小部分（例如配置）
+应该使用#ShareData#，同进程内只传递指针地址，用一份内存
+
+
+知乎 skynet 总体架构
+https://zhuanlan.zhihu.com/p/84634254
+
+
+
+101.33.201.116
+
+101.33.201.116:9948
+
+ws://101.33.201.116:9948
+
+websocket 是一种在协议单个TCP连接上进行全双工通信的协议，3次握手后可以双向发送接收数据
+http 也是一种连接协议，单向的 只能由客户端发起，每一次都要带上header且服务端不知道这次是哪个客户端在发起请求
+
+
+
+Base64编码，不能说是加密，因为没有密钥，编码规则也是公开透明的。
+每3个字节为一组，取每6位为一小组,前面添加2个0，最后组成4个字节。
+"严"的utf-8编码为 E4B8A5
+
+11100100   10111000   10100101
+
+
+00111001  00001011      00100010    00100101
+
+
+fd socket.connect  file desciptor 文件描述符
+
+gated->msgserver->muli gate
+
+watchdog -> 
+    gate连接到客户端后，由agent处理和前端的消息收发
+
+
+关于skynet.pack和skynet.unpack 由于skynet默认是支持多借点的，不同服务之间可能是跨进程甚至机器的，
+                                        所以发送的数据必须是连续的内存，这2个函数能够处理一些lua的数据结构
+
+skynet.send 不阻塞
+skynet.redirect(address,source,typename,...)  多了一个自定义的source，可以模拟其他服务发送消息，
+                                不会主动调用pack，所以这里的...必须是pack后的字符串或者是userdata+len
+
+skynet.call 阻塞等待返回，其他
+skynet.rawcall 类似call，会阻塞，但不会调用pack和unpack
+
+mytestqueryuniquesrv myTestNewService
+myTestUniqueSrv myTestNewService
+
+
+组播(广播消息)
+->new()  
+->new{channel = channelID,dispatch=function ( ... ) end}
+        ->channel:subsribe()
+        ->channel:unsubscirbe()
+->channel:delete()
+
+
+[:0100000c] ===loginserver start  16 59.41.117.217:20623 table: 0x7f22f4896540
+[:01000015] connect from 59.41.117.217:20623 (fd = 16)
+[:01000015] ==loginserver== write to client 
+[:01000015] testToken==== dGVzdDE=@Y29jb3Mx:MTIz
+[:01000015] logind===  dGVzdDE=@Y29jb3Mx:MTIz
+[:01000015] logind===  dGVzdDE= Y29jb3Mx MTIz
+[:01000015] logind===  test1 cocos1 123
+[:01000015] snax.queryservice  [MyGameMysql:100000b]
+{
+        ["sqlstate"] = "42S22",
+        ["err"] = "Unknown column 'test1' in 'where clause'",
+        ["errno"] = 1054,
+        ["badresult"] = true,
+}
+check password  test1   123     table: 0x7f22f40a7ec0
+CheckPassword ERR=      1054    Unknown column 'test1' in 'where clause'
+Crerate ERR=    nil     nil
+test1@cocos1 is login, secret is 加密临时跳过
+cocos1  16777238
+[:01000016] gateserver dispatch===  kick nil
+[:0100001d] test1 is logout
+test1@cocos1 is logout
+[:01000016] gateserver dispatch===  logout nil
+[:0100001d] KILL self
+[:01000016] gateserver dispatch===  login nil
+[:0100001e] LAUNCH snlua msgagent
+[:0100001e] test1 is login
+
+
+
+
+
+每个服务都创建一个虚拟机
+
+1.最好每个msgagent直接在里面创require 一个actor，不再单独创建服务。
+        创建后，注册到EntityMgr即可。
+
+
+
+
+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

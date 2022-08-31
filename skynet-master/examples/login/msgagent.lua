@@ -1,5 +1,7 @@
 local skynet = require "skynet"
 local snax = require "skynet.snax"
+
+
 skynet.register_protocol {
 	name = "client",
 	id = skynet.PTYPE_CLIENT,
@@ -11,10 +13,9 @@ local userid, subid
 local user_actor = {}
 
 local CMD = {}
-
+local _entityMgr
 local function GetEntityMgr()
-	local entityMgr = snax.queryservice("EntityMgr")
-	return entityMgr
+	return _entityMgr or snax.queryservice("EntityMgr")
 end 
 
 function CMD.login(source, uid, sid, secret, ancountId)
@@ -30,13 +31,16 @@ function CMD.login(source, uid, sid, secret, ancountId)
 	local ret,playerInfo = mysqld.req.GetActor(uid, ancountId)
 
 	if ret then
-
+		print("MsgAgent ", 111111111)
 		local entityMgr = GetEntityMgr()
-		createRet = entityMgr.req.createEntity(1,playerInfo.id, playerInfo.level)
+		print("MsgAgent ", 222222222, entityMgr)
+		createRet = entityMgr.req.createEntity(skynet.self(),1,playerInfo.id, playerInfo.level)
 		
 
-		user_actor[userid] = playerInfo.id
+		user_actor[userid] = playerInfo.id 
 		-- playerInfo.id
+
+		print("MsgAgent ", userid, playerInfo.id)
 	end
 
 
@@ -85,8 +89,8 @@ skynet.start(function()
 		-- skynet.error("[msgagent]== recv Type:client", msg)
 		local systemId,cmd = string.unpack(">BB", msg)
 
-		mgr = snax.queryservice("EntityMgr")
-		mgr.post.insertMsg(userid, systemId, cmd, message:sub(3))
+		local mgr = GetEntityMgr()
+		mgr.post.insertMsg(user_actor[userid], systemId, cmd, msg:sub(3))
 
 		print("=================================CLIENT systemId,cmd", systemId,cmd)
 		skynet.sleep(10)	-- sleep a while

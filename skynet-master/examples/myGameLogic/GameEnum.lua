@@ -15,7 +15,7 @@ t.ESYS =
 }
 t.ECMD_FIGHT = 
 {
-	UseSKill = 1
+	Move = 1,
 }
 
 

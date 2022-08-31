@@ -119,9 +119,9 @@ end
 function response.GetActor(user, accountId)
     local ret = db:query("select * from actors where accountid='"..accountId.."'")
     print("==SQL=== GetActor ",user,dump(ret))
-    -- print("check password",user, checkPass, ret.password)
+    print("check password",ret.errno)
     if ret.errno then
-        print("GetActor ERR=", ret.errno, ret.err)
+        print("GetActor ERR=", ret.errno, ret.err, ret[1])
         return false
     else
         if ret[1] --[[and ret[1].password == checkPass 先不验证密码]] then

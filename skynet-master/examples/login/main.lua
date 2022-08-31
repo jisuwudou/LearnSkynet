@@ -15,9 +15,6 @@ skynet.start(function()
 		servername = "cocos1",
 	})
 
-	ser =snax.uniqueservice("EntityMgr")
-	print("main.........",ser)
-	sss=snax.queryservice("EntityMgr")
-	print("main.........",sss)
-	skynet.error("login main 77777777777777777")
+	snax.uniqueservice("EntityMgr")
+	snax.uniqueservice("FubenMgr")
 end)

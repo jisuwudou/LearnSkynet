@@ -10,6 +10,14 @@ from enum import Enum #枚举
 import  Manager.Event_Mgr as EvtMgr
 import define.LogicCmd
 
+def Singleton(cls):
+	_instance={}
+	def _singleton(*args,**kwagrs):
+		if cls not in  _instance:
+			_instance[cls]=cls(*args,**kwagrs)
+		return _instance[cls]
+	return _singleton
+
 class EGAME_STATUS(Enum):
 	INIT = 0
 	REQ_LOGIN= 1
@@ -26,13 +34,17 @@ class EROOM_STATUS(Enum):
 	PLAYING = 2#游戏中
 
 
-def Singleton(cls):
-	_instance={}
-	def _singleton(*args,**kwagrs):
-		if cls not in  _instance:
-			_instance[cls]=cls(*args,**kwagrs)
-		return _instance[cls]
-	return _singleton
+GAME_CONFIG = {
+	'MaxMember': 2,
+	'HEIGHT': 200,
+	'WIDTH': 400,
+
+}
+
+
+# 添加系统时钟，用于设置帧的刷新
+FPS = 40
+clock = pygame.time.Clock()
 
 
 class WinBase(Group):
@@ -61,9 +73,7 @@ def NetworkData():
 		# print("On Get NetworkData ", ret)
 
 
-@Singleton
-class GAME_CONFIG():
-	MaxMember = 2
+
 
 class Player(Sprite):
 	_ID = None
@@ -83,14 +93,55 @@ class Player(Sprite):
 		self.image.fill("black")
 		self.rect = self.image.get_rect()
 
+
+
+
 class MainPlayer(Player):
 	
-
-	def __init__(self):
-		super().__init__()
+	speed = 2
+	lastX=0
+	lastY=0
+	def __init__(self,actorId, name,lv,icon):
+		super().__init__(actorId, name,lv,icon)
 
 		self.image.fill("blue")
+		self.lastX = self.rect.x
+		self.lastY = self.rect.y
+
+	def update(self, *args):
+		keys = pygame.key.get_pressed()
+		if keys[pygame.K_UP]:
+		    self.rect.y -= self.speed
+		if keys[pygame.K_DOWN]:
+		    self.rect.y += self.speed
+		if keys[pygame.K_LEFT]:
+		    self.rect.x -= self.speed
+		if keys[pygame.K_RIGHT]:
+		    self.rect.x += self.speed
+		if keys[pygame.K_SPACE]:
+		    if self.ready_to_fire == 0:
+		        self.fire()
+		    self.ready_to_fire += 1
+		    if self.ready_to_fire > 5:
+		        self.ready_to_fire = 0
+		else:
+		    self.ready_to_fire = 0
+		if self.rect.x < 0:
+		    self.rect.x = 0
+		if self.rect.y < 0:
+		    self.rect.y = 0
+		if self.rect.y > GAME_CONFIG['HEIGHT'] - self.rect.height:
+		    self.rect.y = GAME_CONFIG['HEIGHT'] - self.rect.height
 		
+		if self.lastX != self.rect.x or self.lastY != self.rect.y:
+			self.lastX = self.rect.x
+			self.lastY = self.rect.y
+
+			pack = ws.AllocPackage(1,1)#ESYS.MovementSys, )
+			pack.WriteWord(self.lastX)
+			pack.WriteWord(self.lastY)
+			ws.Flush()
+
 
 class Room():
 	_number = None
@@ -195,10 +246,7 @@ class Win_FindRoom(WinBase):
 		print("BTN enterroom ", self,btn)
 		# data = struct.pack(">H")
 		# ws.Send_request(123, 0)
-		pack = ws.AllocPackage(1,1)#ESYS.MovementSys, )
-		pack.WriteWord(10)
-		pack.WriteWord(20)
-		ws.Flush()
+		
 
 ###登录界面####
 class Win_Login(WinBase):
@@ -255,6 +303,8 @@ class BackGround(pygame.sprite.Sprite):
     def draw(self, window):
     	super().draw(window)
 
+
+heroGroup = None
 class MainLogic:
 	
 	def LogicRun(self):
@@ -275,8 +325,15 @@ class MainLogic:
 		win_mgr = Win_Mgr()
 		# win_mgr.ShowWinStatic(EWIN.BACKGOURND)
 		win_mgr.ShowWin(EWIN.LOGIN)
+		global heroGroup
+		heroGroup = Group()
+		mplayer = MainPlayer(1, "mainplayer",11,1)
+		heroGroup.add(mplayer)
 
 		while True:
+
+			clock.tick(FPS)
+
 			window.fill((255, 255, 255))
 			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
 				continue
@@ -291,6 +348,9 @@ class MainLogic:
 				
 				win_mgr.dealEvent(event)
 			
+			heroGroup.update()
+			heroGroup.draw(window)
+
 			EvtMgr.GetMgr().Run()
 
 			

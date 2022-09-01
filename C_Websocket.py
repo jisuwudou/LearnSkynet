@@ -43,7 +43,7 @@ class Package():
         # value = str(value)
         self.buffer += struct.pack(">H", value)
 
-        print("WriteWord ", self.buffer)
+        # print("WriteWord ", self.buffer)
     def WriteInt(self,value):
         self.pLen += 4
 
@@ -57,9 +57,9 @@ class Package():
     def GetBuffer(self, session):
         
         self.pLen += 4
-        print("GetBuffer len=", self.pLen,self.buffer)
+        # print("GetBuffer len=", self.pLen,self.buffer)
         self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("I",session)
-        print(self.buffer)
+        # print(self.buffer)
         # self.buffer = struct.pack(">BBHHI",1,1,10,20,0) 
         print(self.buffer, struct.unpack(">HBBHHI", self.buffer))
         # b'\x00\x04\x00\n\x00\x14\x00\x00\x00\x00' (4, 10, 20, 0)
@@ -67,6 +67,7 @@ class Package():
 
     def Clear(self):
         self.buffer = None
+        self.pLen = 0
 
 
 def AllocPackage(sys, cmd):
@@ -289,5 +290,5 @@ def socket_client(userinfo):
  
 
     
-if __name__ == '__main__':
-    socket_client()
+# if __name__ == '__main__':
+#     socket_client()

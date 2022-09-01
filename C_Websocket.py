@@ -173,8 +173,8 @@ def Flush():
         curPackage.Clear()
         curPackage = None
 
-        m_session += 1
-        print(m_session)
+        # m_session += 1
+        # print(m_session)
 
 def close():
     global loginSocket,requestSocket
@@ -187,8 +187,11 @@ def close():
 def GetSrvData():
     global requestSocket
     try:
-        if requestSocket and requestSocket.fileno() :
-            return requestSocket.recv(1024)
+        # while True:
+        # print("xxxxx")
+        if requestSocket :
+            data = requestSocket.recv(1024)
+            print("GetSrvData ", data)
     except Exception as e:
         raise e
     
@@ -238,6 +241,7 @@ def socket_client(userinfo):
     global requestSocket
     try:
         requestSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # requestSocket.setblocking(True)
         requestSocket.connect(('101.33.201.116', 9948))
     except socket.error as msg:
         print("!!!connect requestSocket ",msg)
@@ -261,6 +265,11 @@ def socket_client(userinfo):
 
 
     canRecv = True
+    # print("")
+    # thread = Thread(target=GetSrvData)       #发送数据后，就进行接收数据的循环线程中
+    # thread.daemon = True
+    # thread.start()  #启动线程
+
 
     # handshakeretLen = struct.unpack(">H", handshakeret)
     # print("handshakeretLen ", handshakeretLen)
@@ -270,6 +279,7 @@ def socket_client(userinfo):
     # Send_package("clientsendpackage")
 
     # while 1:
+
     #     number = input('please input number with(BYTE:0-255): ')
 
     #     if number == 'exit':

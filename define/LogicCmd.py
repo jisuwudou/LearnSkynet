@@ -5,7 +5,7 @@ class ESYS(Enum):
 	DefaultSys = 0
 	MovementSys = 1
 
-class ECMDMove(Enum):
+class ECMD(Enum):
 
 	cMovePos = 1
 

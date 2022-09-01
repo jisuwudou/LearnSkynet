@@ -55,7 +55,7 @@ class WinBase(Group):
 	def Kill(self):
 		for sprite in self.sprites():
 			sprite.kill()
-			print("sprite kill ", sprite)
+			# print("sprite kill ", sprite)
 
 	def dealEvent(self,event):
 		for sprite in self.sprites():
@@ -64,12 +64,12 @@ class WinBase(Group):
 
 
 def NetworkData():
-	# pass
-	while True:
-		# time.sleep(2)
-		data = ws.GetSrvData()
-		if data and len(data) > 0 :
-			print("Thread Test, On Recved Srv Data=", data)
+	pass
+
+	# while True:
+		# data = ws.GetSrvData()
+		# if data and len(data) > 0 :
+			# print("Thread Test, On Recved Srv Data=", data)
 		# ret = ws.GetNetWorkData()
 		# print("On Get NetworkData ", ret)
 
@@ -332,8 +332,9 @@ class MainLogic:
 		heroGroup.add(mplayer)
 		# testtick = 0
 		while True:
-
+			ws.GetSrvData()
 			clock.tick(FPS)
+
 			# testtick += 1
 			# if testtick > FPS :
 			# 	print("testtick",testtick)
@@ -367,9 +368,7 @@ def MainThreadRun():
 
 if __name__ == "__main__":
 
-	thread = Thread(target=NetworkData)       #发送数据后，就进行接收数据的循环线程中
-	thread.daemon = True
-	thread.start()  #启动线程
+	
 
 	# thread1 = Thread(target=MainThreadRun)       #发送数据后，就进行接收数据的循环线程中
 	# thread1.daemon = True

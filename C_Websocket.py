@@ -61,7 +61,7 @@ class Package():
         self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("I",session)
         # print(self.buffer)
         # self.buffer = struct.pack(">BBHHI",1,1,10,20,0) 
-        print(self.buffer, struct.unpack(">HBBHHI", self.buffer))
+        print("Send Data ", struct.unpack(">HBBHHI", self.buffer))
         # b'\x00\x04\x00\n\x00\x14\x00\x00\x00\x00' (4, 10, 20, 0)
         return self.buffer
 
@@ -183,8 +183,12 @@ def close():
 
 def GetSrvData():
     global requestSocket
-    if requestSocket :
-        return requestSocket.recv(1024)
+    try:
+        if requestSocket and requestSocket.fileno() :
+            return requestSocket.recv(1024)
+    except Exception as e:
+        raise e
+    
 
 
 def socket_client(userinfo):

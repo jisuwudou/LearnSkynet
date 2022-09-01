@@ -125,3 +125,20 @@ test1@cocos1 is logout
 
 
 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
+
+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
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCSyGX9Zt
+/ZmFVrwjlOyOV
+/s1zZlsZ6gGw4ksYHJTiGQfDOVpriWvdjTTRKapNZPWcjj7UEduZwGwMdHdxSWeMuQHZu6WOqImQaavhQx7T
+DfrePApagRcir4okwUmkFwyBYu1hTUInVsw3J3kOr+
+itPIK6tLYQgK0Wp9wdlixAwtDrVJKBxbKdmv/mPQZZvulxYBCAJWebbxjrV0OpW2w+Ad5ZyYhkpubMKLj9rJKMcFnnBDKa9qIHN
+/cOxHi46rECcb5n3irHlYYgJwLB4IWQaWFbJNU
+/oC1Y/viYEBuaMpHoDjjk3X+HWmfXeie7Ywy12NXKpKhe1a0e+zxbuN7nN skey-dfqif1uf
+
+
+都是传输层协议
+TCP
+面向连接  可靠                                发送字节流
+UDP
+非连接    不可靠(不知道消息是否送达，可能丢包)  发送报文

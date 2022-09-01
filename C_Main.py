@@ -66,9 +66,10 @@ class WinBase(Group):
 def NetworkData():
 	# pass
 	while True:
-		time.sleep(2)
+		# time.sleep(2)
 		data = ws.GetSrvData()
-		print("Thread Test", data)
+		if data and len(data) > 0 :
+			print("Thread Test, On Recved Srv Data=", data)
 		# ret = ws.GetNetWorkData()
 		# print("On Get NetworkData ", ret)
 
@@ -329,11 +330,14 @@ class MainLogic:
 		heroGroup = Group()
 		mplayer = MainPlayer(1, "mainplayer",11,1)
 		heroGroup.add(mplayer)
-
+		# testtick = 0
 		while True:
 
 			clock.tick(FPS)
-
+			# testtick += 1
+			# if testtick > FPS :
+			# 	print("testtick",testtick)
+			# 	testtick = 0
 			window.fill((255, 255, 255))
 			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
 				continue

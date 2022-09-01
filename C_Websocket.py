@@ -58,14 +58,15 @@ class Package():
         
         self.pLen += 4
         # print("GetBuffer len=", self.pLen,self.buffer)
-        self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("I",session)
+        self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack(">I",session)
         # print(self.buffer)
         # self.buffer = struct.pack(">BBHHI",1,1,10,20,0) 
-        print("Send Data ", struct.unpack(">HBBHHI", self.buffer))
+        print("Send Data ",self.buffer, struct.unpack(">HBBHHI", self.buffer))
         # b'\x00\x04\x00\n\x00\x14\x00\x00\x00\x00' (4, 10, 20, 0)
         return self.buffer
 
     def Clear(self):
+
         self.buffer = None
         self.pLen = 0
 
@@ -73,8 +74,7 @@ class Package():
 def AllocPackage(sys, cmd):
     global curPackage
     if curPackage :
-        print("========= ERRRRRRRRRRRRRRRRRRRRR ,only one package ===============")
-        return None
+        curPackage.Clear()
 
     curPackage = Package(sys, cmd)
     return curPackage
@@ -159,19 +159,22 @@ def Unpack_package(value):
     return info.split(" ")
 
 
-
+m_session = 0
 def Flush():
     global curPackage
     if None == curPackage :
         print("========= ERRRRRRRRRRRRRRRRRRRRR ,flush no package ===============")
         return None
 
-    global requestSocket
+    global requestSocket,m_session
     if requestSocket:
-        buffer = curPackage.GetBuffer(0)
+        buffer = curPackage.GetBuffer(m_session)
         requestSocket.send(buffer)
         curPackage.Clear()
         curPackage = None
+
+        m_session += 1
+        print(m_session)
 
 def close():
     global loginSocket,requestSocket

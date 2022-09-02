@@ -1,5 +1,5 @@
 import pygame
-from threading import Thread
+
 from draw import InputBox
 from draw import ButtonImage
 import C_Websocket as ws
@@ -138,10 +138,10 @@ class MainPlayer(Player):
 			self.lastX = self.rect.x
 			self.lastY = self.rect.y
 
-			pack = ws.AllocPackage(1,1)#ESYS.MovementSys, )
+			pack = ws.AllocPackage(1,2)#提交按键状态
 			pack.WriteWord(self.lastX)
 			pack.WriteWord(self.lastY)
-			ws.Flush()
+			pack.Flush(0)
 
 
 class Room():
@@ -245,8 +245,13 @@ class Win_FindRoom(WinBase):
 
 	def enterRoom(self,btn):
 		print("BTN enterroom ", self,btn)
-		# data = struct.pack(">H")
-		# ws.Send_request(123, 0)
+		
+		pack = ws.AllocPackage(1,1)#进入房间
+		pack.WriteWord(10)
+		# pack.WriteWord(self.lastY)
+		pack.Flush(0)
+
+
 		
 
 ###登录界面####
@@ -332,7 +337,11 @@ class MainLogic:
 		heroGroup.add(mplayer)
 		# testtick = 0
 		while True:
-			ws.GetSrvData()
+			# print("run herie1111")
+			# data=ws.GetSrvData()
+			# print("run herie2222")
+			# if data and len(data) > 0:
+				# print("server data recv")
 			clock.tick(FPS)
 
 			# testtick += 1

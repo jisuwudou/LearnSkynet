@@ -4,7 +4,7 @@ import sys
 import os
 import base64 
 import struct
-
+from threading import Thread
 
 
 
@@ -70,11 +70,21 @@ class Package():
         self.buffer = None
         self.pLen = 0
 
+    def Flush(self,session):
+        global requestSocket
+        if requestSocket:
+            self.buffer = self.GetBuffer(session)
+            requestSocket.send(self.buffer)
+            self.Clear()
+            # curPackage = None
+        else:
+            print("ERRRRRRRR Flush not requestSocket")
+
 
 def AllocPackage(sys, cmd):
-    global curPackage
-    if curPackage :
-        curPackage.Clear()
+    # global curPackage
+    # if curPackage :
+    #     curPackage.Clear()
 
     curPackage = Package(sys, cmd)
     return curPackage
@@ -159,19 +169,19 @@ def Unpack_package(value):
     return info.split(" ")
 
 
-m_session = 0
-def Flush():
-    global curPackage
-    if None == curPackage :
-        print("========= ERRRRRRRRRRRRRRRRRRRRR ,flush no package ===============")
-        return None
+# m_session = 0
+# def Flush(session):
+#     global curPackage
+#     if None == curPackage :
+#         print("========= ERRRRRRRRRRRRRRRRRRRRR ,flush no package ===============")
+#         return None
 
-    global requestSocket,m_session
-    if requestSocket:
-        buffer = curPackage.GetBuffer(m_session)
-        requestSocket.send(buffer)
-        curPackage.Clear()
-        curPackage = None
+#     global requestSocket
+#     if requestSocket:
+#         buffer = curPackage.GetBuffer(session)
+#         requestSocket.send(buffer)
+#         curPackage.Clear()
+#         curPackage = None
 
         # m_session += 1
         # print(m_session)
@@ -186,14 +196,27 @@ def close():
 
 def GetSrvData():
     global requestSocket
-    try:
-        # while True:
-        # print("xxxxx")
-        if requestSocket :
-            data = requestSocket.recv(1024)
-            print("GetSrvData ", data)
-    except Exception as e:
-        raise e
+    while True:
+        
+        try:
+            if requestSocket :
+                data = requestSocket.recv(1024)
+                # if data:
+                print("dat len ", len(data))
+                # print("GetSrvData ", data )
+                req_result = data[-5]
+                if req_result != 1:
+                    print("ERRRRR req_result!=1")
+                else:
+                    respone_session = data[-4:]
+                    # print("req_succ session=", session)
+
+                
+                print("ret ", ret,ret[0])
+                # ret = struct.unpack(">HBBHHBI",data)
+                
+        except Exception as e:
+            raise e
     
 
 
@@ -257,18 +280,21 @@ def socket_client(userinfo):
     retCode,retInfo = Unpack_package(handshakeret)
     if int(retCode) == 200:
         print("============hand shake SUCCESS !!!!=============")
-        return True
+        # return True
     else:
         print("============hand shake ERR !!!", retCode, retInfo)
         requestSocket.close()
         return False
 
+    # pack = ws.AllocPackage(1,2)#ESYS.MovementSys, )
+    # pack.WriteWord(5)#房间号
+    # pack.Flush(1)#等待状态同步
 
     canRecv = True
-    # print("")
-    # thread = Thread(target=GetSrvData)       #发送数据后，就进行接收数据的循环线程中
-    # thread.daemon = True
-    # thread.start()  #启动线程
+    print("")
+    thread = Thread(target=GetSrvData)       #发送数据后，就进行接收数据的循环线程中
+    thread.daemon = True
+    thread.start()  #启动线程
 
 
     # handshakeretLen = struct.unpack(">H", handshakeret)

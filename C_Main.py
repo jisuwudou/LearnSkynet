@@ -96,7 +96,7 @@ class Player(Sprite):
 
 
 
-
+# print("keyxxxxxxxx ", pygame.K_UP)
 class MainPlayer(Player):
 	
 	speed = 2
@@ -111,36 +111,52 @@ class MainPlayer(Player):
 
 	def update(self, *args):
 		keys = pygame.key.get_pressed()
-		if keys[pygame.K_UP]:
-		    self.rect.y -= self.speed
-		if keys[pygame.K_DOWN]:
-		    self.rect.y += self.speed
-		if keys[pygame.K_LEFT]:
-		    self.rect.x -= self.speed
-		if keys[pygame.K_RIGHT]:
-		    self.rect.x += self.speed
-		if keys[pygame.K_SPACE]:
-		    if self.ready_to_fire == 0:
-		        self.fire()
-		    self.ready_to_fire += 1
-		    if self.ready_to_fire > 5:
-		        self.ready_to_fire = 0
-		else:
-		    self.ready_to_fire = 0
-		if self.rect.x < 0:
-		    self.rect.x = 0
-		if self.rect.y < 0:
-		    self.rect.y = 0
-		if self.rect.y > GAME_CONFIG['HEIGHT'] - self.rect.height:
-		    self.rect.y = GAME_CONFIG['HEIGHT'] - self.rect.height
+		# print("KeyDown ", type(keys), keys)
+		# if keys[pygame.K_UP]:
+		#     self.rect.y -= self.speed
+		# if keys[pygame.K_DOWN]:
+		#     self.rect.y += self.speed
+		# if keys[pygame.K_LEFT]:
+		#     self.rect.x -= self.speed
+		# if keys[pygame.K_RIGHT]:
+		#     self.rect.x += self.speed
+		# if keys[pygame.K_SPACE]:
+		#     if self.ready_to_fire == 0:
+		#         self.fire()
+		#     self.ready_to_fire += 1
+		#     if self.ready_to_fire > 5:
+		#         self.ready_to_fire = 0
+		# else:
+		#     self.ready_to_fire = 0
+		# if self.rect.x < 0:
+		#     self.rect.x = 0
+		# if self.rect.y < 0:
+		#     self.rect.y = 0
+		# if self.rect.y > GAME_CONFIG['HEIGHT'] - self.rect.height:
+		#     self.rect.y = GAME_CONFIG['HEIGHT'] - self.rect.height
 		
-		if self.lastX != self.rect.x or self.lastY != self.rect.y:
-			self.lastX = self.rect.x
-			self.lastY = self.rect.y
+		# if self.lastX != self.rect.x or self.lastY != self.rect.y:
+		# 	self.lastX = self.rect.x
+		# 	self.lastY = self.rect.y
 
+		commitkye=0
+		if keys[pygame.K_UP]:
+		    # self.rect.y -= self.speed
+		    commitkye |= (1 << 1)
+		if keys[pygame.K_DOWN]:
+		    # self.rect.y += self.speed
+		    commitkye |= (1 << 2)
+		if keys[pygame.K_LEFT]:
+			commitkye |= (1 << 3)
+		    # self.rect.x -= self.speed
+		if keys[pygame.K_RIGHT]:
+			commitkye |= (1 << 4)
+		    # self.rect.x += self.speed
+
+		if commitkye > 0:
+			# print("commitkye ",commitkye)
 			pack = ws.AllocPackage(1,2)#提交按键状态
-			pack.WriteWord(self.lastX)
-			pack.WriteWord(self.lastY)
+			pack.WriteInt(commitkye)
 			pack.Flush(0)
 
 
@@ -337,17 +353,9 @@ class MainLogic:
 		heroGroup.add(mplayer)
 		# testtick = 0
 		while True:
-			# print("run herie1111")
-			# data=ws.GetSrvData()
-			# print("run herie2222")
-			# if data and len(data) > 0:
-				# print("server data recv")
-			clock.tick(FPS)
 
-			# testtick += 1
-			# if testtick > FPS :
-			# 	print("testtick",testtick)
-			# 	testtick = 0
+			clock.tick(FPS)
+			
 			window.fill((255, 255, 255))
 			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
 				continue

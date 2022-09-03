@@ -66,7 +66,7 @@ end
 
 local CMD = {}
 
-function CMD.register_gate(server, address)
+function CMD.register_gate(server, address)--servername  gated
 	server_list[server] = address
 end
 

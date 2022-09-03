@@ -1,5 +1,5 @@
 import pygame
-from threading import Thread
+
 from draw import InputBox
 from draw import ButtonImage
 import C_Websocket as ws
@@ -9,6 +9,14 @@ from pygame.sprite import Sprite,Group
 from enum import Enum #枚举
 import  Manager.Event_Mgr as EvtMgr
 import define.LogicCmd
+
+def Singleton(cls):
+	_instance={}
+	def _singleton(*args,**kwagrs):
+		if cls not in  _instance:
+			_instance[cls]=cls(*args,**kwagrs)
+		return _instance[cls]
+	return _singleton
 
 class EGAME_STATUS(Enum):
 	INIT = 0
@@ -26,13 +34,17 @@ class EROOM_STATUS(Enum):
 	PLAYING = 2#游戏中
 
 
-def Singleton(cls):
-	_instance={}
-	def _singleton(*args,**kwagrs):
-		if cls not in  _instance:
-			_instance[cls]=cls(*args,**kwagrs)
-		return _instance[cls]
-	return _singleton
+GAME_CONFIG = {
+	'MaxMember': 2,
+	'HEIGHT': 200,
+	'WIDTH': 400,
+
+}
+
+
+# 添加系统时钟，用于设置帧的刷新
+FPS = 40
+clock = pygame.time.Clock()
 
 
 class WinBase(Group):
@@ -43,7 +55,7 @@ class WinBase(Group):
 	def Kill(self):
 		for sprite in self.sprites():
 			sprite.kill()
-			print("sprite kill ", sprite)
+			# print("sprite kill ", sprite)
 
 	def dealEvent(self,event):
 		for sprite in self.sprites():
@@ -52,18 +64,17 @@ class WinBase(Group):
 
 
 def NetworkData():
-	# pass
-	while True:
-		time.sleep(2)
-		data = ws.GetSrvData()
-		print("Thread Test", data)
+	pass
+
+	# while True:
+		# data = ws.GetSrvData()
+		# if data and len(data) > 0 :
+			# print("Thread Test, On Recved Srv Data=", data)
 		# ret = ws.GetNetWorkData()
 		# print("On Get NetworkData ", ret)
 
 
-@Singleton
-class GAME_CONFIG():
-	MaxMember = 2
+
 
 class Player(Sprite):
 	_ID = None
@@ -83,14 +94,71 @@ class Player(Sprite):
 		self.image.fill("black")
 		self.rect = self.image.get_rect()
 
+
+
+# print("keyxxxxxxxx ", pygame.K_UP)
 class MainPlayer(Player):
 	
-
-	def __init__(self):
-		super().__init__()
+	speed = 2
+	lastX=0
+	lastY=0
+	def __init__(self,actorId, name,lv,icon):
+		super().__init__(actorId, name,lv,icon)
 
 		self.image.fill("blue")
+		self.lastX = self.rect.x
+		self.lastY = self.rect.y
+
+	def update(self, *args):
+		keys = pygame.key.get_pressed()
+		# print("KeyDown ", type(keys), keys)
+		# if keys[pygame.K_UP]:
+		#     self.rect.y -= self.speed
+		# if keys[pygame.K_DOWN]:
+		#     self.rect.y += self.speed
+		# if keys[pygame.K_LEFT]:
+		#     self.rect.x -= self.speed
+		# if keys[pygame.K_RIGHT]:
+		#     self.rect.x += self.speed
+		# if keys[pygame.K_SPACE]:
+		#     if self.ready_to_fire == 0:
+		#         self.fire()
+		#     self.ready_to_fire += 1
+		#     if self.ready_to_fire > 5:
+		#         self.ready_to_fire = 0
+		# else:
+		#     self.ready_to_fire = 0
+		# if self.rect.x < 0:
+		#     self.rect.x = 0
+		# if self.rect.y < 0:
+		#     self.rect.y = 0
+		# if self.rect.y > GAME_CONFIG['HEIGHT'] - self.rect.height:
+		#     self.rect.y = GAME_CONFIG['HEIGHT'] - self.rect.height
 		
+		# if self.lastX != self.rect.x or self.lastY != self.rect.y:
+		# 	self.lastX = self.rect.x
+		# 	self.lastY = self.rect.y
+
+		commitkye=0
+		if keys[pygame.K_UP]:
+		    # self.rect.y -= self.speed
+		    commitkye |= (1 << 1)
+		if keys[pygame.K_DOWN]:
+		    # self.rect.y += self.speed
+		    commitkye |= (1 << 2)
+		if keys[pygame.K_LEFT]:
+			commitkye |= (1 << 3)
+		    # self.rect.x -= self.speed
+		if keys[pygame.K_RIGHT]:
+			commitkye |= (1 << 4)
+		    # self.rect.x += self.speed
+
+		if commitkye > 0:
+			# print("commitkye ",commitkye)
+			pack = ws.AllocPackage(1,2)#提交按键状态
+			pack.WriteInt(commitkye)
+			pack.Flush(0)
+
 
 class Room():
 	_number = None
@@ -193,12 +261,14 @@ class Win_FindRoom(WinBase):
 
 	def enterRoom(self,btn):
 		print("BTN enterroom ", self,btn)
-		# data = struct.pack(">H")
-		# ws.Send_request(123, 0)
-		pack = ws.AllocPackage(1,1)#ESYS.MovementSys, )
+		
+		pack = ws.AllocPackage(1,1)#进入房间
 		pack.WriteWord(10)
-		pack.WriteWord(20)
-		ws.Flush()
+		# pack.WriteWord(self.lastY)
+		pack.Flush(0)
+
+
+		
 
 ###登录界面####
 class Win_Login(WinBase):
@@ -255,6 +325,8 @@ class BackGround(pygame.sprite.Sprite):
     def draw(self, window):
     	super().draw(window)
 
+
+heroGroup = None
 class MainLogic:
 	
 	def LogicRun(self):
@@ -275,8 +347,15 @@ class MainLogic:
 		win_mgr = Win_Mgr()
 		# win_mgr.ShowWinStatic(EWIN.BACKGOURND)
 		win_mgr.ShowWin(EWIN.LOGIN)
-
+		global heroGroup
+		heroGroup = Group()
+		mplayer = MainPlayer(1, "mainplayer",11,1)
+		heroGroup.add(mplayer)
+		# testtick = 0
 		while True:
+
+			clock.tick(FPS)
+			
 			window.fill((255, 255, 255))
 			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
 				continue
@@ -291,6 +370,9 @@ class MainLogic:
 				
 				win_mgr.dealEvent(event)
 			
+			heroGroup.update()
+			heroGroup.draw(window)
+
 			EvtMgr.GetMgr().Run()
 
 			
@@ -303,9 +385,7 @@ def MainThreadRun():
 
 if __name__ == "__main__":
 
-	thread = Thread(target=NetworkData)       #发送数据后，就进行接收数据的循环线程中
-	thread.daemon = True
-	thread.start()  #启动线程
+	
 
 	# thread1 = Thread(target=MainThreadRun)       #发送数据后，就进行接收数据的循环线程中
 	# thread1.daemon = True

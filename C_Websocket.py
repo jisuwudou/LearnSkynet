@@ -1,12 +1,10 @@
-
+# -*- coding: UTF-8 -*-
 import socket
 import sys
 import os
 import base64 
 import struct
-
-
-
+from threading import Thread
 
 
 loginSocket=None
@@ -30,7 +28,6 @@ class Package():
             print("Package WriteBytes too big ", value)
             return False
 
-        # value = str(value)
         self.buffer += struct.pack(">B", value)
 
     def WriteWord(self,value):
@@ -43,38 +40,68 @@ class Package():
         # value = str(value)
         self.buffer += struct.pack(">H", value)
 
-        print("WriteWord ", self.buffer)
+        # print("WriteWord ", self.buffer)
     def WriteInt(self,value):
         self.pLen += 4
-
-        # if value > 65535:
-        #     print("Package WriteWord too big ", value)
-        #     return False
-
-        # value = str(value)
         self.buffer += struct.pack(">i", value)
+
 
     def GetBuffer(self, session):
         
         self.pLen += 4
-        print("GetBuffer len=", self.pLen,self.buffer)
-        self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack("I",session)
-        print(self.buffer)
+        # print("GetBuffer len=", self.pLen,self.buffer)
+        self.buffer = struct.pack(">H",self.pLen) + self.buffer + struct.pack(">I",session)
+        # print(self.buffer)
         # self.buffer = struct.pack(">BBHHI",1,1,10,20,0) 
-        print(self.buffer, struct.unpack(">HBBHHI", self.buffer))
+        # print("Send Data ",self.buffer, struct.unpack(">HBBHHI", self.buffer))
         # b'\x00\x04\x00\n\x00\x14\x00\x00\x00\x00' (4, 10, 20, 0)
         return self.buffer
 
-    def Clear(self):
-        self.buffer = None
+    
 
+    def Clear(self):
+
+        self.buffer = None
+        self.pLen = 0
+
+    def Flush(self,session):
+        global requestSocket
+        if requestSocket:
+            self.buffer = self.GetBuffer(session)
+            requestSocket.send(self.buffer)
+            self.Clear()
+            # curPackage = None
+        else:
+            print("ERRRRRRRR Flush not requestSocket")
+
+class PackageRead():
+    buffer = None
+    def __init__(self, data):
+        self.buffer = data
+
+    ########## READ ##############
+    def ReadInit(self,data):
+        self.buffer = data
+
+    def ReadByte(self):
+        # ret = struct.unpack(">B", self.buffer[0])
+        ret  = self.buffer[0]
+        self.buffer = self.buffer[1:]
+        return ret
+
+    def ReadWord(self):
+        ret = struct.unpack(">H", self.buffer[:2])
+        self.buffer = self.buffer[2:]
+        return ret[0]
+
+    def ReadUInt(self):
+        ret = struct.unpack(">I", self.buffer[:4])
+        self.buffer = self.buffer[4:]
+        return ret[0]
+
+     ########## READ END##############
 
 def AllocPackage(sys, cmd):
-    global curPackage
-    if curPackage :
-        print("========= ERRRRRRRRRRRRRRRRRRRRR ,only one package ===============")
-        return None
-
     curPackage = Package(sys, cmd)
     return curPackage
 
@@ -158,19 +185,22 @@ def Unpack_package(value):
     return info.split(" ")
 
 
+# m_session = 0
+# def Flush(session):
+#     global curPackage
+#     if None == curPackage :
+#         print("========= ERRRRRRRRRRRRRRRRRRRRR ,flush no package ===============")
+#         return None
 
-def Flush():
-    global curPackage
-    if None == curPackage :
-        print("========= ERRRRRRRRRRRRRRRRRRRRR ,flush no package ===============")
-        return None
+#     global requestSocket
+#     if requestSocket:
+#         buffer = curPackage.GetBuffer(session)
+#         requestSocket.send(buffer)
+#         curPackage.Clear()
+#         curPackage = None
 
-    global requestSocket
-    if requestSocket:
-        buffer = curPackage.GetBuffer(0)
-        requestSocket.send(buffer)
-        curPackage.Clear()
-        curPackage = None
+        # m_session += 1
+        # print(m_session)
 
 def close():
     global loginSocket,requestSocket
@@ -179,11 +209,41 @@ def close():
     if requestSocket:
         requestSocket.close()
 
-
+waitingDatas = []
 def GetSrvData():
     global requestSocket
-    if requestSocket :
-        return requestSocket.recv(1024)
+    while True:
+        
+        try:
+            if requestSocket :
+                data = requestSocket.recv(1024)
+                # print("dat len ", data, len(data))
+
+                readCls = PackageRead(data)
+                
+                # headData = struct.unpack(">HBB", data[:4])
+                readCls.ReadWord()
+                # print(data)
+                
+                systemId = readCls.ReadByte()
+                cmd = readCls.ReadByte()
+                # print("systemId ", systemId, cmd)
+
+                # print("HeadData", headData)
+                if systemId == 1 and cmd == 2:
+                    # print("收到同步信息")
+                    dataLen = readCls.ReadByte()
+                    # print("dataLen = ", dataLen)
+                    for i in range(dataLen):
+                        key = readCls.ReadUInt()
+                        print("keybroad info ", i, key)
+                    # data = struct.unpack(">HBB", data)
+
+                # waitingDatas.add(data)
+                
+        except Exception as e:
+            raise e
+    
 
 
 def socket_client(userinfo):
@@ -230,6 +290,7 @@ def socket_client(userinfo):
     global requestSocket
     try:
         requestSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # requestSocket.setblocking(True)
         requestSocket.connect(('101.33.201.116', 9948))
     except socket.error as msg:
         print("!!!connect requestSocket ",msg)
@@ -245,34 +306,24 @@ def socket_client(userinfo):
     retCode,retInfo = Unpack_package(handshakeret)
     if int(retCode) == 200:
         print("============hand shake SUCCESS !!!!=============")
-        return True
+        # return True
     else:
         print("============hand shake ERR !!!", retCode, retInfo)
         requestSocket.close()
         return False
 
+    # pack = ws.AllocPackage(1,2)#ESYS.MovementSys, )
+    # pack.WriteWord(5)#房间号
+    # pack.Flush(1)#等待状态同步
 
     canRecv = True
+    print("")
+    thread = Thread(target=GetSrvData)       #发送数据后，就进行接收数据的循环线程中
+    thread.daemon = True
+    thread.start()  #启动线程
 
-    # handshakeretLen = struct.unpack(">H", handshakeret)
-    # print("handshakeretLen ", handshakeretLen)
-
-    # Send_request("echo", 0)
-
-    # Send_package("clientsendpackage")
-
-    # while 1:
-    #     number = input('please input number with(BYTE:0-255): ')
-
-    #     if number == 'exit':
-    #         break
-
-    #     number = int(number)
-        
-    #     print(number,type(number))
-        
-    #     # Send_request("echo", 0)
-    #     Send_request(number, 0)
+    return True
+    
 
         
         
@@ -289,5 +340,5 @@ def socket_client(userinfo):
  
 
     
-if __name__ == '__main__':
-    socket_client()
+# if __name__ == '__main__':
+#     socket_client()

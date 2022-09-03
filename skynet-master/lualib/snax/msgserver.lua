@@ -127,7 +127,7 @@ end
 function server.ip(username)
 	local u = user_online[username]
 	if u and u.fd then
-		return u.ip
+		return u.ip,u.fd
 	end
 end
 
@@ -203,6 +203,9 @@ function server.start(conf)
 		u.fd = fd
 		u.ip = addr
 		connection[fd] = u
+
+
+
 	end
 
 	local function auth(fd, addr, msg, sz)
@@ -216,13 +219,20 @@ function server.start(conf)
 		local close = result ~= nil
 
 		if result == nil then
-			result = "200 OK"
+			result = "200 OK"--握手成功？
 		end
 
 		socketdriver.send(fd, netpack.pack(result))
 
 		if close then
 			gateserver.closeclient(fd)
+		else--yyq
+			local u = assert(connection[fd], "fd_to_agent invalid fd")
+			local ok, result = pcall(conf.fd_to_agent, u.username,fd)
+			if not ok then
+				gateserver.closeclient(fd)
+				skynet.error("ERRRRRRRRRR msgserver fd_to_agent",fd)
+			end
 		end
 	end
 
@@ -251,64 +261,80 @@ function server.start(conf)
 	end
 
 	local function do_request(fd, message)
+
 		local u = assert(connection[fd], "invalid fd")
 		local session = string.unpack(">I4", message, -4)
-
 		message = message:sub(1,-5)
-		-- skynet.error("===do_request () session=", session)
-		-- skynet.error("===do_request () message=",message)
-		local p = u.response[session]
+		local ok, result = pcall(conf.request_handler,  u.username, message)
+		-- skynet.error("msgserer do_request() ", ok, result)
 
-		-- skynet.error("do_request ", fd, message, session, p)
-		if p then
-			-- session can be reuse in the same connection
-			if p[3] == u.version then
-				local last = u.response[session]
-				u.response[session] = nil
-				p = nil
-				if last[2] == nil then
-					local error_msg = string.format("Conflict session %s", crypt.hexencode(session))
-					skynet.error(error_msg)
-					error(error_msg)
-				end
-			end
-		end
+		-----------下面是云风写的 请求/响应模型，不适合我要做的--------
+		-- local u = assert(connection[fd], "invalid fd")
+		-- local session = string.unpack(">I4", message, -4)
 
-		if p == nil then
-			p = { fd }
-			u.response[session] = p
-			local ok, result = pcall(conf.request_handler, u.username, message)
-			-- NOTICE: YIELD here, socket may close.
-			result = result or ""
-			if not ok then
-				skynet.error(result)
-				result = string.pack(">BI4", 0, session)
-			else
-				result = result .. string.pack(">BI4", 1, session)
-			end
+		-- message = message:sub(1,-5)
+		-- -- skynet.error("===do_request () session=", session)
+		-- -- skynet.error("===do_request () message=",message)
+		-- local p = u.response[session]
 
-			p[2] = string.pack(">s2",result)
-			p[3] = u.version
-			p[4] = u.index
-		else
-			-- update version/index, change return fd.
-			-- resend response.
-			p[1] = fd
-			p[3] = u.version
-			p[4] = u.index
-			if p[2] == nil then
-				-- already request, but response is not ready
-				return
-			end
-		end
-		u.index = u.index + 1
-		-- the return fd is p[1] (fd may change by multi request) check connect
-		fd = p[1]
-		if connection[fd] then
-			socketdriver.send(fd, p[2])
-		end
-		p[1] = nil
-		retire_response(u)
+		-- skynet.error("do_request111 ", fd, session, p)
+		-- if p then
+		-- 	-- session can be reuse in the same connection
+		-- 	if p[3] == u.version then
+		-- 		local last = u.response[session]
+		-- 		u.response[session] = nil
+		-- 		p = nil
+		-- 		if last[2] == nil then
+		-- 			local error_msg = string.format("Conflict session %d %s",session, crypt.hexencode(session))
+		-- 			skynet.error(error_msg)
+		-- 			error(error_msg)
+		-- 		end
+		-- 	end
+		-- end
+		-- skynet.error("do_request2222  ",p)
+		-- if p == nil then
+		-- 	p = { fd }
+		-- 	u.response[session] = p
+		-- 	local ok, result = pcall(conf.request_handler, u.username, message)
+		-- 	-- NOTICE: YIELD here, socket may close.
+		-- 	result = result or ""
+
+		-- 	skynet.error("do_request333  request_handler ok?",ok)
+		-- 	if not ok then
+		-- 		skynet.error(result)
+		-- 		result = string.pack(">BI4", 0, session)
+		-- 	else
+		-- 		result = result .. string.pack(">BI4", 1, session)
+		-- 	end
+		-- 	skynet.error("do_request333  ",ok, "result pack",nil == string.pack(">s2",result), "u.index=",u.index)
+		-- 	p[2] = string.pack(">s2",result)
+		-- 	p[3] = u.version
+		-- 	p[4] = u.index
+		-- 	skynet.error("do_request333 END p[2] == nil=",p[2] == nil)
+		-- else
+		-- 	-- update version/index, change return fd.
+		-- 	-- resend response.
+		-- 	p[1] = fd
+		-- 	p[3] = u.version
+		-- 	p[4] = u.index
+		-- 	if p[2] == nil then
+		-- 		-- already request, but response is not ready
+
+
+
+		-- 		skynet.error("do_request44444444  already request, but response is not ready result=p[2] = nil")
+		-- 		return
+		-- 	end
+		-- end
+		-- u.index = u.index + 1
+		-- -- the return fd is p[1] (fd may change by multi request) check connect
+		-- fd = p[1]
+		-- if connection[fd] then
+		-- 	socketdriver.send(fd, p[2])
+		-- end
+		-- p[1] = nil
+		-- skynet.error("retire_response()   ",p)
+		-- retire_response(u)
 	end
 
 	local function request(fd, msg, sz)

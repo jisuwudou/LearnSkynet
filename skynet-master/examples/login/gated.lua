@@ -20,7 +20,6 @@ function server.login_handler(uid, secret, accountId)
 	local id = internal_id	-- don't use internal_id directly
 	local username = msgserver.username(uid, id, servername)
 
-
 	skynet.error("==gated== login_handler()", uid, id, username, accountId)
 	-- you can use a pool to alloc new agent
 	local agent = skynet.newservice "msgagent"
@@ -30,14 +29,14 @@ function server.login_handler(uid, secret, accountId)
 		uid = uid,
 		subid = id,
 	}
-	skynet.error("==gated== login_handler() 222")
+	-- skynet.error("==gated== login_handler() 222")
 	skynet.call(agent, "lua", "login", uid, id, secret, accountId)
-	skynet.error("==gated== login_handler() 333")
+	-- skynet.error("==gated== login_handler() 333")
 	users[uid] = u
 	username_map[username] = u
 
 	msgserver.login(username, secret)
-	skynet.error("==gated== login_handler() 333")
+	-- skynet.error("==gated== login_handler() 333")
 	-- you should return unique subid
 	return id
 end
@@ -75,18 +74,24 @@ function server.disconnect_handler(username)
 end
 
 -- call by self (when recv a request from client)
-function server.request_handler(username, msg)
+function server.request_handler(username, msg,fd)
 	local u = username_map[username]
 
-	-- skynet.error("==gated ==== request_handler ", username, msg)
+	-- skynet.error("==gated ==== request_handler ",fd, username, msg)
 	
-	return skynet.tostring(skynet.rawcall(u.agent, "client", msg))
+	return skynet.tostring(skynet.rawcall(u.agent, "client",msg))
 end
 
 -- call by self (when gate open)
 function server.register_handler(name)
 	servername = name
 	skynet.call(loginservice, "lua", "register_gate", servername, skynet.self())
+end
+
+--yyq 握手成功后将fd传给对应的agent
+function server.fd_to_agent(username, fd)
+	local u = username_map[username]
+	skynet.call(u.agent, "lua","setfd", fd)
 end
 
 msgserver.start(server)

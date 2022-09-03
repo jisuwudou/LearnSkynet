@@ -60,7 +60,7 @@ function gateserver.start(handler)
 
 	local function dispatch_msg(fd, msg, sz)
 
-		skynet.error("==[gateserver ]==dispatch_msg",fd,msg,sz, skynet.tostring(msg, sz))
+		-- skynet.error("==[gateserver ]==dispatch_msg",fd,msg,sz, skynet.tostring(msg, sz))
 		if connection[fd] then
 			handler.message(fd, msg, sz)
 		else
@@ -135,11 +135,11 @@ function gateserver.start(handler)
 		id = skynet.PTYPE_SOCKET,	-- PTYPE_SOCKET = 6
 		unpack = function ( msg, sz )
 
-			skynet.error("gateserver TYPE:socekt, msg:",msg, sz, netpack.filter( queue, msg, sz))
+			-- skynet.error("gateserver TYPE:socekt, msg:",msg, sz, netpack.filter( queue, msg, sz))
 			return netpack.filter( queue, msg, sz)
 		end,
 		dispatch = function (a, b, q, type, ...)
-			skynet.error("gateserver MSG type:socket, q, type：",type,"a=",a, "b=",b, "q=",q,"...=",...)
+			-- skynet.error("gateserver MSG type:socket, q, type：",type,"a=",a, "b=",b, "q=",q,"...=",...)
 			queue = q
 			if type then
 				MSG[type](...)
@@ -148,9 +148,9 @@ function gateserver.start(handler)
 	}
 
 	local function init()
-		skynet.dispatch("lua", function (_, address, cmd, ...)
+		skynet.dispatch("lua", function (s, address, cmd, ...)
 			local f = CMD[cmd]
-			-- skynet.error("gateserver dispatch=== ", cmd, f)
+			skynet.error("gateserver dispatch=== ", s, address, skynet.address(s), skynet.address(address))
 			if f then
 				skynet.ret(skynet.pack(f(address, ...)))
 			else

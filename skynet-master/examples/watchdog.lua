@@ -37,6 +37,7 @@ function SOCKET.warning(fd, size)
 end
 
 function SOCKET.data(fd, msg)
+	print("watchdog == SOCKET.data()", fd, msg)
 end
 
 function CMD.start(conf)

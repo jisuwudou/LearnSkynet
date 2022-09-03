@@ -16,5 +16,6 @@ skynet.start(function()
 	})
 
 	snax.uniqueservice("EntityMgr")
-	snax.uniqueservice("FubenMgr")
+	_fubenMgr = snax.uniqueservice("FubenMgr")
+	_fubenMgr.post.StartTimer()
 end)

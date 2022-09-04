@@ -63,29 +63,18 @@ class WinBase(Group):
 				sprite.dealEvent(event)
 
 
-def NetworkData():
-	pass
-
-	# while True:
-		# data = ws.GetSrvData()
-		# if data and len(data) > 0 :
-			# print("Thread Test, On Recved Srv Data=", data)
-		# ret = ws.GetNetWorkData()
-		# print("On Get NetworkData ", ret)
-
-
-
 
 class Player(Sprite):
-	_ID = None
+	speed = 2
+	playerIdx=None# 在房间里的编号
 	_name = None
 	_lv = None
 	_icon = None
 
-	def __init__(self, actorId, name,lv,icon):
+	def __init__(self, playerIdx, name,lv,icon):
 		super().__init__()
 
-		self._ID = actorId
+		self.playerIdx = playerIdx
 		self._name = name
 		self._lv = lv
 		self._icon = icon
@@ -94,20 +83,43 @@ class Player(Sprite):
 		self.image.fill("black")
 		self.rect = self.image.get_rect()
 
+	#根据服务端按键信息，执行操作
+	def updatekeybroad(self,newkeybroadList):
+		# print("update key ", newkeybroadList)
 
+		player1 = newkeybroadList
+
+		if player1 >> 1 & 1:
+			self.rect.y -= self.speed
+		if player1 >> 2 & 1:
+			self.rect.y += self.speed
+		if player1 >> 3 & 1:
+			self.rect.x -= self.speed
+		if player1 >> 4 & 1:
+			self.rect.x += self.speed
+
+
+		if self.rect.x < 0:
+		    self.rect.x = 0
+		if self.rect.y < 0:
+		    self.rect.y = 0
+		if self.rect.y > GAME_CONFIG['HEIGHT'] - self.rect.height:
+		    self.rect.y = GAME_CONFIG['HEIGHT'] - self.rect.height
 
 # print("keyxxxxxxxx ", pygame.K_UP)
 class MainPlayer(Player):
 	
-	speed = 2
+	
 	lastX=0
 	lastY=0
-	def __init__(self,actorId, name,lv,icon):
-		super().__init__(actorId, name,lv,icon)
+	
+	def __init__(self,subRoomIdx, name,lv,icon):
+		super().__init__(subRoomIdx, name,lv,icon)
 
 		self.image.fill("blue")
 		self.lastX = self.rect.x
 		self.lastY = self.rect.y
+		
 
 	def update(self, *args):
 		keys = pygame.key.get_pressed()
@@ -325,8 +337,71 @@ class BackGround(pygame.sprite.Sprite):
     def draw(self, window):
     	super().draw(window)
 
+#### 处理收到的网络消息 #####
+def HandleNetWorkData():
+	data = ws.GetNetWorkInfo()
+	if not data:
+		return
 
-heroGroup = None
+
+	global m_heroGroup,m_playerList,m_mplayer
+
+	readCls = ws.PackageRead(data)
+	readCls.ReadWord()#舍弃
+	systemId = readCls.ReadByte()
+	cmd = readCls.ReadByte()
+	print("HandleNetWorkData ", systemId, cmd)
+	if systemId == 1:
+		if cmd == 1:#进入房间的结果
+			enterRet = readCls.ReadByte()
+			roomId = readCls.ReadWord()
+			playerIdx = readCls.ReadWord()
+			print(enterRet, roomId, playerIdx)
+			
+			if enterRet == 1:
+				print("EnterRoom enterRet=", enterRet, "roomId=",roomId,"playerIdx=", playerIdx)
+				
+				if m_mplayer :
+					print("ERRRRRRRR mainplayer has create")
+					return
+					
+				m_mplayer = MainPlayer(playerIdx, "mainplayer",11,1)
+				m_heroGroup.add(m_mplayer)
+				m_playerList.append(m_mplayer)
+
+			else:
+				print("ERRRRRRR enter room wrong roomId=", roomId)
+		elif cmd == 2:# "收到同步按键信息"
+			global m_keyboradInfos
+			dataLen = readCls.ReadByte()
+			
+			newKey = {}
+
+			for i in range(dataLen):
+				playerIdx = readCls.ReadByte()
+				key = readCls.ReadUInt()
+				newKey[playerIdx]=key
+			if len(newKey) > 0:
+			    m_keyboradInfos.append(newKey)
+
+		elif cmd == 3:#出现了其他玩家
+			# global m_heroGroup,m_playerList,m_mplayer
+			playerIdx = readCls.ReadByte()
+			print("Other Player EnterRoom ", playerIdx)
+			otherPlayer = Player(playerIdx, "player_"+str(playerIdx),11,1)
+			m_heroGroup.add(otherPlayer)
+			m_playerList.append(otherPlayer)
+
+
+m_keyboradInfos = []
+def GetNewKeybroad():
+	if len(m_keyboradInfos) > 0:
+		info = m_keyboradInfos.pop(0)
+		return info
+
+m_heroGroup = Group()
+m_playerList = []
+m_mplayer = None
 class MainLogic:
 	
 	def LogicRun(self):
@@ -347,18 +422,21 @@ class MainLogic:
 		win_mgr = Win_Mgr()
 		# win_mgr.ShowWinStatic(EWIN.BACKGOURND)
 		win_mgr.ShowWin(EWIN.LOGIN)
-		global heroGroup
-		heroGroup = Group()
-		mplayer = MainPlayer(1, "mainplayer",11,1)
-		heroGroup.add(mplayer)
+		global m_heroGroup
+
+		
+		
 		# testtick = 0
 		while True:
 
 			clock.tick(FPS)
+
+
 			
 			window.fill((255, 255, 255))
 			if Game_Mgr()._gameStatus == EGAME_STATUS.REQ_LOGIN:
 				continue
+
 
 			win_mgr.Update(window)
 
@@ -369,9 +447,21 @@ class MainLogic:
 					raise SystemExit
 				
 				win_mgr.dealEvent(event)
-			
-			heroGroup.update()
-			heroGroup.draw(window)
+			HandleNetWorkData()
+			newkeybroadList = GetNewKeybroad()
+			if newkeybroadList:
+				for player in m_playerList:
+					print("update key player.playerIdx=", player.playerIdx, len(newkeybroadList.keys()))
+
+
+					value = newkeybroadList.get(player.playerIdx)
+					if value:
+						player.updatekeybroad(value)
+				
+
+
+			m_heroGroup.update()
+			m_heroGroup.draw(window)
 
 			EvtMgr.GetMgr().Run()
 

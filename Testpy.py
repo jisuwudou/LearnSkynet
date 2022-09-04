@@ -13,3 +13,8 @@ print(data, id(data))
 
 test(data)
 print(data)
+
+
+a = 4
+
+print(a & 0x1,a & (1 << 2))

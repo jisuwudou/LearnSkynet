@@ -209,7 +209,15 @@ def close():
     if requestSocket:
         requestSocket.close()
 
-waitingDatas = []
+
+
+
+networkInfoList = []
+def GetNetWorkInfo():
+    if len(networkInfoList) > 0:
+        info = networkInfoList.pop(0)
+        return info
+
 def GetSrvData():
     global requestSocket
     while True:
@@ -217,27 +225,9 @@ def GetSrvData():
         try:
             if requestSocket :
                 data = requestSocket.recv(1024)
-                # print("dat len ", data, len(data))
-
-                readCls = PackageRead(data)
                 
-                # headData = struct.unpack(">HBB", data[:4])
-                readCls.ReadWord()
-                # print(data)
-                
-                systemId = readCls.ReadByte()
-                cmd = readCls.ReadByte()
-                # print("systemId ", systemId, cmd)
-
-                # print("HeadData", headData)
-                if systemId == 1 and cmd == 2:
-                    # print("收到同步信息")
-                    dataLen = readCls.ReadByte()
-                    # print("dataLen = ", dataLen)
-                    for i in range(dataLen):
-                        key = readCls.ReadUInt()
-                        print("keybroad info ", i, key)
-                    # data = struct.unpack(">HBB", data)
+                networkInfoList.append(data)   
+                        
 
                 # waitingDatas.add(data)
                 
